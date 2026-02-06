@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Listado de Inventario</h2>
+    <a href="/admin/inventario/producto/add/" class="btn btn-primary">+ Nuevo Producto</a>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>SKU</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Stock</th>
+                    <th>Precio Venta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in page_obj %}
+                <tr>
+                    <td><code>{{ producto.sku }}</code></td>
+                    <td>{{ producto.nombre }}</td>
+                    <td><span class="badge bg-info text-dark">{{ producto.categoria.nombre }}</span></td>
+                    <td class="{% if producto.stock_actual <= producto.stock_minimo %}text-danger fw-bold{% endif %}">
+                        {{ producto.stock_actual }}
+                    </td>
+                    <td>${{ producto.precio_venta }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No hay productos registrados aún.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
