@@ -20,4 +20,6 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('inventario/', include('inventario.urls')), # Conectamos la app de inventario
+    # Añade esta línea para habilitar login, logout y gestión de password
+    path('accounts/', include('django.contrib.auth.urls')),
 ]

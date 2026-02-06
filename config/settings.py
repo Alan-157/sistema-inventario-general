@@ -134,3 +134,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Especificamos que usaremos nuestro modelo personalizado
 AUTH_USER_MODEL = 'usuarios.Usuario'
+
+# Permite cerrar sesión vía GET (necesario para enlaces simples)
+LOGOUT_ON_GET = True
+
+# Opcional: ¿A dónde redirigir después de cerrar sesión?
+LOGOUT_REDIRECT_URL = '/inventario/'

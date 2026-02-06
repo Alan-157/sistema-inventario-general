@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0">Registrar Nuevo Producto</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">{{ form.nombre.label_tag }}{{ form.nombre }}</div>
+                        <div class="col-md-6 mb-3">{{ form.categoria.label_tag }}{{ form.categoria }}</div>
+                        <div class="col-md-6 mb-3">{{ form.precio_costo.label_tag }}{{ form.precio_costo }}</div>
+                        <div class="col-md-6 mb-3">{{ form.precio_venta.label_tag }}{{ form.precio_venta }}</div>
+                        <div class="col-md-6 mb-3">{{ form.stock_actual.label_tag }}{{ form.stock_actual }}</div>
+                        <div class="col-md-6 mb-3">{{ form.stock_minimo.label_tag }}{{ form.stock_minimo }}</div>
+                        <div class="col-12 mb-3">{{ form.proveedor.label_tag }}{{ form.proveedor }}</div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                        <a href="{% url 'lista_productos' %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
