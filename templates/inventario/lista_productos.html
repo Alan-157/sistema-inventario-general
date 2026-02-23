@@ -1,26 +1,54 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Listado de Inventario</h2>
-    <a href="{% url 'crear_producto' %}" class="btn btn-primary">+ Nuevo Producto</a>
+<div class="row mb-4 align-items-center">
+    <div class="col-md-4">
+        <h2>Listado de Inventario</h2>
+    </div>
+    <div class="col-md-5">
+        <form method="GET" class="d-flex">
+            <input type="text" name="q" class="form-control me-2" placeholder="Buscar por nombre o SKU..." value="{{ query|default:'' }}">
+            <button type="submit" class="btn btn-outline-dark">Buscar</button>
+            {% if query %}
+                <a href="{% url 'lista_productos' %}" class="btn btn-link text-decoration-none">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+    <div class="col-md-3 text-end">
+        <a href="{% url 'exportar_excel' %}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </a>
+        {% if user.rol == 'ADMIN' %}
+        <a href="{% url 'crear_producto' %}" class="btn btn-primary">+ Nuevo Producto</a>
+        {% endif %}
+    </div>
 </div>
 
-<div class="card shadow">
+<div class="card shadow border-0">
     <div class="card-body">
-        <table class="table table-hover">
+        <table class="table table-hover align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>SKU</th>
+                    <th>Imagen</th> <th>SKU</th>
                     <th>Producto</th>
                     <th>Categoría</th>
                     <th>Stock</th>
                     <th>Precio Venta</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for producto in page_obj %}
                 <tr>
+                    <td>
+                        {% if producto.imagen %}
+                            <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" style="width: 50px; height: 50px; object-fit: cover;" class="rounded shadow-sm">
+                        {% else %}
+                            <div class="bg-light rounded text-center pt-2" style="width: 50px; height: 50px;">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </td>
                     <td><code>{{ producto.sku }}</code></td>
                     <td>{{ producto.nombre }}</td>
                     <td><span class="badge bg-info text-dark">{{ producto.categoria.nombre }}</span></td>
@@ -28,23 +56,46 @@
                         {{ producto.stock_actual }}
                     </td>
                     <td>${{ producto.precio_venta }}</td>
+                    <td class="text-center">
+                        <div class="btn-group">
+                            {% if user.rol == 'ADMIN' %}
+                            <a href="{% url 'editar_producto' producto.pk %}" class="btn btn-sm btn-outline-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'desactivar_producto' producto.pk %}" 
+                               class="btn btn-sm btn-outline-danger" 
+                               onclick="return confirm('¿Estás seguro de desactivar {{ producto.nombre }}?')" 
+                               title="Desactivar">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center">No hay productos registrados aún.</td>
+                    <td colspan="7" class="text-center py-4 text-muted">No se encontraron productos.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
-        <nav>
+        <nav aria-label="Page navigation">
             <ul class="pagination justify-content-center">
                 {% if page_obj.has_previous %}
-                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a>
+                    </li>
                 {% endif %}
-                <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+
+                <li class="page-item disabled">
+                    <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
                 {% if page_obj.has_next %}
-                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a>
+                    </li>
                 {% endif %}
             </ul>
         </nav>

@@ -4,9 +4,17 @@ from django.utils.text import slugify
 import random
 import string
 
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True) # Soft Delete lógico
+
+    class Meta:
+        abstract = True
+
 # 1. MODELO DE CATEGORÍA
 # Permite agrupar productos para organizar el inventario y facilitar búsquedas masivas.
-class Categoria(models.Model):
+class Categoria(BaseModel):
     # unique=True evita duplicados y crea un índice en la DB para búsquedas rápidas.
     nombre = models.CharField(max_length=100, unique=True) 
     descripcion = models.TextField(blank=True, null=True)
@@ -16,7 +24,7 @@ class Categoria(models.Model):
 
 # 2. MODELO DE PROVEEDOR
 # Es vital para la gestión de compras y contacto cuando el stock esté bajo.
-class Proveedor(models.Model):
+class Proveedor(BaseModel):
     nombre = models.CharField(max_length=150)
     # En Chile el RUT es el identificador único, lo usamos como clave de búsqueda.
     rut = models.CharField(max_length=12, unique=True, help_text="Ej: 12.345.678-9")
@@ -25,7 +33,34 @@ class Proveedor(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+# Modelo de Producto Mejorado
+class Producto(BaseModel):
+    nombre = models.CharField(max_length=200)
+    sku = models.CharField(max_length=50, unique=True, blank=True)
+    categoria = models.ForeignKey('Categoria', on_delete=models.PROTECT)
+    proveedor = models.ForeignKey('Proveedor', on_delete=models.SET_NULL, null=True)
+    
+    precio_costo = models.IntegerField()
+    precio_venta = models.IntegerField()
+    
+    stock_actual = models.PositiveIntegerField(default=0)
+    stock_minimo = models.PositiveIntegerField(default=10)
+    
+    # Campo de Imagen (Clase 10)
+    imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        if not self.sku:
+            prefijo = self.nombre[:3].upper()
+            aleatorio = ''.join(random.choices(string.digits, k=4))
+            self.sku = f"PROD-{prefijo}-{aleatorio}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.nombre} ({self.sku})"    
+    
+"""
 # 3. MODELO DE PRODUCTO
 # El núcleo del sistema. Diseñado para ser eficiente incluso con 100k+ registros.
 class Producto(models.Model):
@@ -71,10 +106,10 @@ class Producto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.sku})"
-
+"""
 # 4. MODELO DE HISTORIAL (KARDEX)
 # Registra cada movimiento de stock para auditoría (quién hizo qué, cuándo y por qué).
-class HistorialMovimiento(models.Model):
+class HistorialMovimiento(BaseModel):
     # Opciones fijas para estandarizar los tipos de movimiento en la base de datos.
     TIPO_MOVIMIENTO = [
         ('ENTRADA', 'Entrada de Mercadería'),

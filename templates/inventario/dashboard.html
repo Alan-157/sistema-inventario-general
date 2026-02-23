@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body">
+                <h5>Total de Productos</h5>
+                <h2>{{ total_productos }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card {% if cantidad_criticos > 0 %}bg-danger{% else %}bg-success{% endif %} text-white shadow">
+            <div class="card-body">
+                <h5>Stock Crítico</h5>
+                <h2>{{ cantidad_criticos }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">Productos por Agotarse</div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Stock Actual</th>
+                            <th>Mínimo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prod in productos_criticos %}
+                        <tr>
+                            <td>{{ prod.nombre }}</td>
+                            <td class="text-danger fw-bold">{{ prod.stock_actual }}</td>
+                            <td>{{ prod.stock_minimo }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-success">Todo el stock está al día.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header bg-info text-dark">Actividad Reciente</div>
+            <ul class="list-group list-group-flush">
+                {% for mov in ultimos_movimientos %}
+                <li class="list-group-item">
+                    <strong>{{ mov.tipo }}</strong>: {{ mov.producto.nombre }} ({{ mov.cantidad }})
+                    <br><small class="text-muted">{{ mov.fecha|date:"d/m H:i" }} - por {{ mov.usuario.username }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

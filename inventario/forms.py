@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from .models import HistorialMovimiento, Producto
 
 class MovimientoForm(forms.ModelForm):
@@ -27,3 +28,17 @@ class ProductoForm(forms.ModelForm):
             'stock_actual': forms.NumberInput(attrs={'class': 'form-control'}),
             'stock_minimo': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        precio_costo = cleaned_data.get("precio_costo")
+        precio_venta = cleaned_data.get("precio_venta")
+
+        # Regla de negocio: No se puede vender a menos de lo que costó
+        if precio_costo and precio_venta:
+            if precio_venta < precio_costo:
+                raise ValidationError({
+                    'precio_venta': "El precio de venta no puede ser menor al costo de adquisición."
+                })
+        return cleaned_data
+        
