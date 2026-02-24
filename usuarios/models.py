@@ -1,25 +1,19 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 
 class Usuario(AbstractUser):
-    #Definimos los roles como constantes para evitar errores de escritura
-    ADMIN = 'ADMIN'
-    BODEGUERO = 'BODEGUERO'
-    VISUALIZADOR = 'VISUALIZADOR'
-    
-    ROLES_CHOICES = [
-        (ADMIN, 'Administrador'),
-        (BODEGUERO, 'Bodeguero / Operador'),
-        (VISUALIZADOR, 'Solo Visualización'),
+    ROLES = [
+        ('SUPERUSUARIO', 'Superusuario'),
+        ('ADMIN', 'Administrador'),
+        ('TRABAJADOR', 'Trabajador'),
+        ('CLIENTE', 'Cliente'),
     ]
-
-    #Añadimos el campo rol al usuario
-    rol = models.CharField(
-        max_length=20,
-        choices= ROLES_CHOICES,
-        default=VISUALIZADOR,
-        help_text="Usuario que solo puede ver la pagina sin acción alguna(por mientras)"
-    )
     
-    def __str__(self):
-        return f"{self.username} - {self.get_rol_display()}"
+    rol = models.CharField(max_length=20, choices=ROLES, default='CLIENTE')
+
+    def save(self, *args, **kwargs):
+        # Si el usuario es marcado como superusuario de Django, 
+        # le asignamos automáticamente el rol de SUPERUSUARIO del sistema.
+        if self.is_superuser and self.rol != 'SUPERUSUARIO':
+            self.rol = 'SUPERUSUARIO'
+        super().save(*args, **kwargs)

@@ -1,30 +1,39 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.core.exceptions import PermissionDenied
-import openpyxl
-from django.http import HttpResponse
+from django.core.paginator import Paginator
+from django.db import models
 from django.contrib import messages
-from django.db import models  # <--- AGREGA ESTA LÍNEA
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse
+import openpyxl
+
 from .models import Producto, HistorialMovimiento
 from .forms import MovimientoForm, ProductoForm
 
-# Función de prueba para verificar si es ADMIN
-def es_admin(user):
-    if user.rol == 'ADMIN':
+# --- SEGURIDAD Y DECORADORES ---
+
+def es_admin_o_super(user):
+    """Verifica si el usuario es ADMIN o SUPERUSUARIO según PPT U2-C4"""
+    if user.rol in ['ADMIN', 'SUPERUSUARIO'] or user.is_superuser:
         return True
-    raise PermissionDenied # Lanza un error 403 si no es admin
+    raise PermissionDenied
+
+# --- VISTAS DEL SISTEMA ---
 
 @login_required
 def dashboard(request):
-    # Contamos el total de productos para las tarjetas del dashboard
-    total_productos = Producto.objects.count()
+    """Vista principal con alertas de stock crítico (PPT U1-C8)"""
+    total_productos = Producto.objects.filter(is_active=True).count()
     
-    # Aquí es donde fallaba porque no encontraba 'models'
-    productos_criticos = Producto.objects.filter(stock_actual__lte=models.F('stock_minimo'))
+    # Uso de F() para comparar campos en la DB (Rendimiento optimizado)
+    productos_criticos = Producto.objects.filter(
+        is_active=True, 
+        stock_actual__lte=models.F('stock_minimo')
+    )
     
-    # Obtenemos los últimos 5 movimientos para mostrar actividad reciente
-    ultimos_movimientos = HistorialMovimiento.objects.select_related('producto', 'usuario').order_by('-fecha')[:5]
+    ultimos_movimientos = HistorialMovimiento.objects.select_related(
+        'producto', 'usuario'
+    ).order_by('-fecha')[:5]
     
     context = {
         'total_productos': total_productos,
@@ -35,22 +44,96 @@ def dashboard(request):
     return render(request, 'inventario/dashboard.html', context)
 
 @login_required
+def lista_productos(request):
+    """Listado con buscador y paginador (PPT U2-C9)"""
+    query = request.GET.get('q')
+    
+    # Solo mostramos productos activos (Soft Delete)
+    productos_list = Producto.objects.select_related('categoria').filter(is_active=True).order_by('-created_at')
+    
+    if query:
+        # Consulta lógica Q para buscar en múltiples campos
+        productos_list = productos_list.filter(
+            models.Q(nombre__icontains=query) | models.Q(sku__icontains=query)
+        )
+    
+    # Paginación de 10 en 10
+    paginator = Paginator(productos_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'inventario/lista_productos.html', {
+        'page_obj': page_obj,
+        'query': query
+    })
+
+@login_required
+@user_passes_test(es_admin_o_super)
+def crear_producto(request):
+    """Crea un nuevo producto (Solo Admin/Super)"""
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, request.FILES) # request.FILES para fotos PPT U1-C10
+        if form.is_valid():
+            producto = form.save()
+            messages.success(request, f"Producto {producto.nombre} creado exitosamente.")
+            return redirect('lista_productos')
+    else:
+        form = ProductoForm()
+    return render(request, 'inventario/crear_producto.html', {'form': form})
+
+@login_required
+@user_passes_test(es_admin_o_super)
+def editar_producto(request, pk):
+    """Edita un producto existente (Solo Admin/Super)"""
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, request.FILES, instance=producto)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Producto {producto.nombre} actualizado.")
+            return redirect('lista_productos')
+    else:
+        form = ProductoForm(instance=producto)
+    return render(request, 'inventario/crear_producto.html', {'form': form, 'editando': True})
+
+@login_required
+@user_passes_test(es_admin_o_super)
+def desactivar_producto(request, pk):
+    """Eliminación lógica (Soft Delete) (PPT U1-C6)"""
+    producto = get_object_or_404(Producto, pk=pk)
+    producto.is_active = False
+    producto.save()
+    messages.warning(request, f"El producto {producto.nombre} ha sido desactivado del inventario.")
+    return redirect('lista_productos')
+
+@login_required
 def registrar_movimiento(request):
+    """Gestiona entradas y salidas de stock (PPT U1-C9)"""
+    # El Cliente no puede registrar movimientos
+    if request.user.rol == 'CLIENTE':
+        raise PermissionDenied
+
     if request.method == 'POST':
         form = MovimientoForm(request.POST)
         if form.is_valid():
             movimiento = form.save(commit=False)
-            movimiento.usuario = request.user # Registramos quién hizo el cambio
+            movimiento.usuario = request.user
             
-            # Lógica de actualización de stock
+            # Lógica atómica de actualización
             producto = movimiento.producto
             if movimiento.tipo == 'ENTRADA':
                 producto.stock_actual += movimiento.cantidad
-            elif movimiento.tipo == 'SALIDA' or movimiento.tipo == 'AJUSTE':
-                producto.stock_actual -= movimiento.cantidad
+            elif movimiento.tipo in ['SALIDA', 'AJUSTE']:
+                # Validación simple: No quedar en negativo
+                if producto.stock_actual >= movimiento.cantidad:
+                    producto.stock_actual -= movimiento.cantidad
+                else:
+                    messages.error(request, "No hay stock suficiente para esta salida.")
+                    return render(request, 'inventario/registrar_movimiento.html', {'form': form})
             
-            producto.save() # Guardamos el nuevo stock en la DB
-            movimiento.save() # Guardamos el registro en el historial
+            producto.save()
+            movimiento.save()
+            messages.success(request, "Movimiento registrado y stock actualizado.")
             return redirect('lista_productos')
     else:
         form = MovimientoForm()
@@ -58,93 +141,20 @@ def registrar_movimiento(request):
     return render(request, 'inventario/registrar_movimiento.html', {'form': form})
 
 @login_required
-def lista_productos(request):
-    # Capturamos el valor de búsqueda desde el navegador
-    query = request.GET.get('q')
-    
-    # Iniciamos la consulta base con optimización de relación (JOIN SQL)
-    productos_list = Producto.objects.select_related('categoria').filter(is_active=True).order_by('-created_at')
-    
-    # Si hay una búsqueda, filtramos por nombre o SKU (insensible a mayúsculas)
-    if query:
-        productos_list = productos_list.filter(
-            models.Q(nombre__icontains=query) | models.Q(sku__icontains=query)
-        )
-    
-    # Paginación (se mantiene para no saturar la memoria)
-    paginator = Paginator(productos_list, 20) 
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'inventario/lista_productos.html', {
-        'page_obj': page_obj,
-        'query': query  # Devolvemos el texto buscado para que no se borre del cuadro
-    })
-
-
-@login_required
-@user_passes_test(es_admin)
-def crear_producto(request):
-    if request.method == 'POST':
-        form = ProductoForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('lista_productos')
-    else:
-        form = ProductoForm()
-    return render(request, 'inventario/crear_producto.html', {'form': form})
-
-@login_required
 def exportar_excel(request):
-    # Creamos el libro de Excel
+    """Exportación masiva a Excel (Reportabilidad)"""
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Inventario General"
+    ws.title = "Inventario"
 
-    # Definimos los encabezados
-    headers = ['SKU', 'Nombre', 'Categoría', 'Stock Actual', 'Precio Venta', 'Proveedor']
+    headers = ['SKU', 'Producto', 'Categoría', 'Stock', 'Precio Venta']
     ws.append(headers)
 
-    # Obtenemos los productos (optimizado con select_related)
-    productos = Producto.objects.select_related('categoria', 'proveedor').all()
-
+    productos = Producto.objects.filter(is_active=True).select_related('categoria')
     for p in productos:
-        ws.append([
-            p.sku, 
-            p.nombre, 
-            p.categoria.nombre, 
-            p.stock_actual, 
-            p.precio_venta, 
-            p.proveedor.nombre if p.proveedor else "N/A"
-        ])
+        ws.append([p.sku, p.nombre, p.categoria.nombre, p.stock_actual, p.precio_venta])
 
-    # Preparamos la respuesta del navegador para descargar el archivo
     response = HttpResponse(content_type='application/ms-excel')
     response['Content-Disposition'] = 'attachment; filename="Inventario_General.xlsx"'
     wb.save(response)
     return response
-
-# VISTA PARA EDITAR
-@login_required
-@user_passes_test(es_admin)
-def editar_producto(request, pk):
-    producto = get_object_or_404(Producto, pk=pk)
-    if request.method == 'POST':
-        form = ProductoForm(request.POST, request.FILES, instance=producto)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f"Producto '{producto.nombre}' actualizado con éxito.")
-            return redirect('lista_productos')
-    else:
-        form = ProductoForm(instance=producto)
-    return render(request, 'inventario/crear_producto.html', {'form': form, 'editando': True})
-
-# VISTA PARA DESACTIVAR (SOFT DELETE)
-@login_required
-@user_passes_test(es_admin)
-def desactivar_producto(request, pk):
-    producto = get_object_or_404(Producto, pk=pk)
-    producto.is_active = False
-    producto.save()
-    messages.warning(request, f"El producto '{producto.nombre}' ha sido desactivado.")
-    return redirect('lista_productos')

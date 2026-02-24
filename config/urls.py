@@ -24,9 +24,13 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Redirigimos la raíz al dashboard
     path('', RedirectView.as_view(url='inventario/dashboard/', permanent=True)),
-    path('inventario/', include('inventario.urls')), # Conectamos la app de inventario
-    # Añade esta línea para habilitar login, logout y gestión de password
+    
+    path('inventario/', include('inventario.urls')),
+    path('usuarios/', include('usuarios.urls')), # <-- ESTA LÍNEA ES LA QUE FALTA
+    
+    # Sistema de autenticación base (login/logout)
     path('accounts/', include('django.contrib.auth.urls')),
 ]
 
