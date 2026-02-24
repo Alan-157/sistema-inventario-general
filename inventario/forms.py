@@ -17,28 +17,23 @@ class MovimientoForm(forms.ModelForm):
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        # No incluimos 'sku' porque se genera automáticamente en el save() del modelo
-        fields = ['nombre', 'categoria', 'proveedor', 'precio_costo', 'precio_venta', 'stock_actual', 'stock_minimo']
-        widgets = {
-            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
-            'categoria': forms.Select(attrs={'class': 'form-select'}),
-            'proveedor': forms.Select(attrs={'class': 'form-select'}),
-            'precio_costo': forms.NumberInput(attrs={'class': 'form-control'}),
-            'precio_venta': forms.NumberInput(attrs={'class': 'form-control'}),
-            'stock_actual': forms.NumberInput(attrs={'class': 'form-control'}),
-            'stock_minimo': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
+        fields = ['nombre', 'categoria', 'proveedor', 'precio_costo', 'precio_venta', 'stock_actual', 'stock_minimo', 'imagen']
+
+    # Validación personalizada (U1 Clase 9)
+    def clean_precio_venta(self):
+        precio_venta = self.cleaned_data.get('precio_venta')
+        if precio_venta <= 0:
+            raise ValidationError("El precio de venta debe ser un número positivo.")
+        return precio_venta
 
     def clean(self):
         cleaned_data = super().clean()
-        precio_costo = cleaned_data.get("precio_costo")
-        precio_venta = cleaned_data.get("precio_venta")
+        costo = cleaned_data.get('precio_costo')
+        venta = cleaned_data.get('precio_venta')
 
-        # Regla de negocio: No se puede vender a menos de lo que costó
-        if precio_costo and precio_venta:
-            if precio_venta < precio_costo:
-                raise ValidationError({
-                    'precio_venta': "El precio de venta no puede ser menor al costo de adquisición."
-                })
+        if costo and venta and venta < costo:
+            raise ValidationError({
+                'precio_venta': "El precio de venta no puede ser menor al costo (estarías perdiendo dinero)."
+            })
         return cleaned_data
         

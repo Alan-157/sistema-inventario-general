@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="display-6"><i class="bi bi-shop me-2"></i>Catálogo de Productos</h2>
+        <p class="text-muted">Explora nuestros productos disponibles.</p>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+    {% for producto in productos %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0">
+            {% if producto.imagen %}
+                <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="height: 200px; object-fit: cover;">
+            {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="bi bi-image text-muted display-1"></i>
+                </div>
+            {% endif %}
+            
+            <div class="card-body">
+                <span class="badge bg-info text-dark mb-2">{{ producto.categoria.nombre }}</span>
+                <h5 class="card-title">{{ producto.nombre }}</h5>
+                <p class="card-text text-success fw-bold fs-5">${{ producto.precio_venta }}</p>
+            </div>
+            <div class="card-footer bg-white border-0 pb-3">
+                <button class="btn btn-outline-primary w-100">
+                    <i class="bi bi-cart-plus me-2"></i>Añadir al carrito
+                </button>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <p class="text-muted">No hay productos disponibles en este momento.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

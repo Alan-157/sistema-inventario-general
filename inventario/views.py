@@ -158,3 +158,36 @@ def exportar_excel(request):
     response['Content-Disposition'] = 'attachment; filename="Inventario_General.xlsx"'
     wb.save(response)
     return response
+
+@login_required
+@user_passes_test(es_admin_o_super)
+def editar_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == 'POST':
+        # request.FILES es clave para las imágenes (Clase 10)
+        form = ProductoForm(request.POST, request.FILES, instance=producto)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Producto {producto.nombre} actualizado correctamente.")
+            return redirect('lista_productos')
+    else:
+        form = ProductoForm(instance=producto)
+    return render(request, 'inventario/crear_producto.html', {'form': form, 'editando': True})
+
+@login_required
+@user_passes_test(es_admin_o_super)
+def desactivar_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    # No borramos, desactivamos (Soft Delete)
+    producto.is_active = False
+    producto.save()
+    messages.warning(request, f"Producto {producto.nombre} desactivado.")
+    return redirect('lista_productos')
+
+@login_required
+def catalogo_cliente(request):
+    """Vista de catálogo estilo tienda para el rol CLIENTE (U2 Clase 4)"""
+    # Filtramos solo lo que el cliente debe ver
+    productos = Producto.objects.filter(is_active=True, stock_actual__gt=0).select_related('categoria')
+    
+    return render(request, 'inventario/catalogo.html', {'productos': productos})
