@@ -2,35 +2,53 @@
 
 {% block content %}
 <div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold"><i class="bi bi-speedometer2 me-2"></i>Panel de Control</h2>
+        <p class="text-muted">Estado del Kardex e Inventario</p>
+    </div>
+</div>
+
+<div class="row mb-4">
     <div class="col-md-6">
-        <div class="card bg-primary text-white shadow">
-            <div class="card-body">
-                <h5>Total de Productos</h5>
-                <h2>{{ total_productos }}</h2>
+        <div class="card bg-primary text-white shadow border-0">
+            <div class="card-body p-4 text-center">
+                <h5 class="text-uppercase opacity-75 small">Total Productos Activos</h5>
+                <h2 class="display-4 fw-bold mb-0">{{ total_productos }}</h2>
             </div>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card {% if cantidad_criticos > 0 %}bg-danger{% else %}bg-success{% endif %} text-white shadow">
-            <div class="card-body">
-                <h5>Stock Crítico</h5>
-                <h2>{{ cantidad_criticos }}</h2>
+        <div class="card {% if cantidad_criticos > 0 %}bg-danger{% else %}bg-success{% endif %} text-white shadow border-0 text-center">
+            <div class="card-body p-4">
+                <h5 class="text-uppercase opacity-75 small">Productos bajo Stock Mínimo</h5>
+                <h2 class="display-4 fw-bold mb-0">{{ cantidad_criticos }}</h2>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
+<div class="row g-4">
     <div class="col-md-7">
-        <div class="card shadow">
-            <div class="card-header bg-dark text-white">Productos por Agotarse</div>
+        <div class="card shadow border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart me-2"></i>Distribución por Categorías</h5>
+            </div>
             <div class="card-body">
-                <table class="table table-sm">
+                <canvas id="categoriaChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0">Productos Críticos (LTE Stock Mínimo)</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
                     <thead>
                         <tr>
                             <th>Producto</th>
-                            <th>Stock Actual</th>
-                            <th>Mínimo</th>
+                            <th>Stock</th>
+                            <th>Mín.</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -41,7 +59,7 @@
                             <td>{{ prod.stock_minimo }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="3" class="text-center text-success">Todo el stock está al día.</td></tr>
+                        <tr><td colspan="3" class="text-center py-3 text-success">Todo el stock está ok.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -50,17 +68,68 @@
     </div>
     
     <div class="col-md-5">
-        <div class="card shadow">
-            <div class="card-header bg-info text-dark">Actividad Reciente</div>
-            <ul class="list-group list-group-flush">
-                {% for mov in ultimos_movimientos %}
-                <li class="list-group-item">
-                    <strong>{{ mov.tipo }}</strong>: {{ mov.producto.nombre }} ({{ mov.cantidad }})
-                    <br><small class="text-muted">{{ mov.fecha|date:"d/m H:i" }} - por {{ mov.usuario.username }}</small>
-                </li>
-                {% endfor %}
-            </ul>
+        <div class="card shadow border-0">
+            <div class="card-header bg-info text-dark">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Actividad del Kardex</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for mov in ultimos_movimientos %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="badge {% if mov.tipo == 'ENTRADA' %}bg-success{% elif mov.tipo == 'SALIDA' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ mov.get_tipo_display }}
+                            </span>
+                            <small class="text-muted">{{ mov.created_at|date:"d/m H:i" }}</small>
+                        </div>
+                        <p class="mb-0 fw-bold small">{{ mov.producto.nombre }} (Cant: {{ mov.cantidad }})</p>
+                        <small class="text-primary">Por: {{ mov.usuario.username }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('categoriaChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                // Generamos las etiquetas (labels)
+                labels: [
+                    {% for item in datos_grafico %}
+                        "{{ item.categoria__nombre }}",
+                    {% endfor %}
+                ],
+                datasets: [{
+                    // Aquí estaba el detalle: falta el inicio de la llave del objeto
+                    label: 'Productos por Categoría',
+                    data: [
+                        {% for item in datos_grafico %}
+                            {{ item.total }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        '#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#d63384', '#fd7e14'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

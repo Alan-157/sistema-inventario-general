@@ -2,13 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.db import models
+from .models import Producto, HistorialMovimiento, Categoria, Proveedor
 from django.contrib import messages
+from django.db.models import F, Count, Q # Importante para comparar campos
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
+from django.template.loader import get_template
+from .forms import ProductoForm, MovimientoForm
 import openpyxl
-
-from .models import Producto, HistorialMovimiento
-from .forms import MovimientoForm, ProductoForm
+from xhtml2pdf import pisa
+import datetime
 
 # --- SEGURIDAD Y DECORADORES ---
 
@@ -22,64 +25,81 @@ def es_admin_o_super(user):
 
 @login_required
 def dashboard(request):
-    """Vista principal con alertas de stock crítico (PPT U1-C8)"""
+    """Dashboard con gráficos y alertas de stock crítico"""
     total_productos = Producto.objects.filter(is_active=True).count()
     
-    # Uso de F() para comparar campos en la DB (Rendimiento optimizado)
     productos_criticos = Producto.objects.filter(
         is_active=True, 
-        stock_actual__lte=models.F('stock_minimo')
-    )
+        stock_actual__lte=F('stock_minimo')
+    ).select_related('categoria')
     
-    ultimos_movimientos = HistorialMovimiento.objects.select_related(
-        'producto', 'usuario'
-    ).order_by('-fecha')[:5]
-    
+    ultimos_movimientos = HistorialMovimiento.objects.select_related('producto', 'usuario').order_by('-created_at')[:5]
+
+    datos_grafico = Producto.objects.filter(is_active=True).values('categoria__nombre').annotate(total=Count('id'))
+
     context = {
         'total_productos': total_productos,
         'cantidad_criticos': productos_criticos.count(),
         'productos_criticos': productos_criticos,
         'ultimos_movimientos': ultimos_movimientos,
+        'datos_grafico': datos_grafico,
     }
     return render(request, 'inventario/dashboard.html', context)
 
 @login_required
 def lista_productos(request):
-    """Listado con buscador y paginador (PPT U2-C9)"""
-    query = request.GET.get('q')
-    
-    # Solo mostramos productos activos (Soft Delete)
-    productos_list = Producto.objects.select_related('categoria').filter(is_active=True).order_by('-created_at')
-    
+    """Listado con filtros avanzados y paginación"""
+    productos = Producto.objects.filter(is_active=True).select_related('categoria', 'proveedor')
+    categorias = Categoria.objects.all()
+    proveedores = Proveedor.objects.all()
+
+    query = request.GET.get('q', '')
+    cat_id = request.GET.get('categoria', '')
+    prov_id = request.GET.get('proveedor', '')
+    precio_min = request.GET.get('min_precio', '')
+    precio_max = request.GET.get('max_precio', '')
+
     if query:
-        # Consulta lógica Q para buscar en múltiples campos
-        productos_list = productos_list.filter(
-            models.Q(nombre__icontains=query) | models.Q(sku__icontains=query)
-        )
-    
-    # Paginación de 10 en 10
-    paginator = Paginator(productos_list, 10)
+        productos = productos.filter(Q(nombre__icontains=query) | Q(sku__icontains=query))
+    if cat_id:
+        productos = productos.filter(categoria_id=cat_id)
+    if prov_id:
+        productos = productos.filter(proveedor_id=prov_id)
+    if precio_min:
+        productos = productos.filter(precio_venta__gte=precio_min)
+    if precio_max:
+        productos = productos.filter(precio_venta__lte=precio_max)
+
+    paginator = Paginator(productos, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'inventario/lista_productos.html', {
+
+    context = {
         'page_obj': page_obj,
-        'query': query
-    })
+        'query': query,
+        'categorias': categorias,
+        'proveedores': proveedores,
+        'cat_seleccionada': cat_id,
+        'prov_seleccionado': prov_id,
+        'precio_min': precio_min,
+        'precio_max': precio_max,
+    }
+    return render(request, 'inventario/lista_productos.html', context)
 
 @login_required
 @user_passes_test(es_admin_o_super)
 def crear_producto(request):
-    """Crea un nuevo producto (Solo Admin/Super)"""
     if request.method == 'POST':
-        form = ProductoForm(request.POST, request.FILES) # request.FILES para fotos PPT U1-C10
+        form = ProductoForm(request.POST, request.FILES)
         if form.is_valid():
-            producto = form.save()
-            messages.success(request, f"Producto {producto.nombre} creado exitosamente.")
+            form.save()
+            messages.success(request, "¡Producto creado con éxito!")
             return redirect('lista_productos')
     else:
         form = ProductoForm()
-    return render(request, 'inventario/crear_producto.html', {'form': form})
+    
+    # Pasamos 'editando' en False para el título del template
+    return render(request, 'inventario/crear_producto.html', {'form': form, 'editando': False})
 
 @login_required
 @user_passes_test(es_admin_o_super)
@@ -160,6 +180,30 @@ def exportar_excel(request):
     return response
 
 @login_required
+def exportar_pdf(request):
+    """Genera reporte de inventario en PDF"""
+    productos = Producto.objects.filter(is_active=True).select_related('categoria')
+    fecha_actual = datetime.datetime.now()
+    
+    context = {
+        'productos': productos,
+        'fecha': fecha_actual,
+        'usuario': request.user
+    }
+    
+    template = get_template('inventario/reporte_pdf.html')
+    html = template.render(context)
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Reporte_Inventario.pdf"'
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    
+    if pisa_status.err:
+        return HttpResponse('Error al generar PDF', status=500)
+    return response
+
+@login_required
 @user_passes_test(es_admin_o_super)
 def editar_producto(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
@@ -191,3 +235,9 @@ def catalogo_cliente(request):
     productos = Producto.objects.filter(is_active=True, stock_actual__gt=0).select_related('categoria')
     
     return render(request, 'inventario/catalogo.html', {'productos': productos})
+
+@login_required
+def detalle_producto(request, pk):
+    """Muestra la ficha técnica de un producto"""
+    producto = get_object_or_404(Producto, pk=pk, is_active=True)
+    return render(request, 'inventario/detalle_producto.html', {'producto': producto})

@@ -3,3 +3,4 @@ mysqlclient
 libmysqlclient
 openpyxl
 Pillow
+xhtml2pdf
