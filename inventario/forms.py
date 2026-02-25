@@ -10,8 +10,14 @@ class ProductoForm(forms.ModelForm):
             'precio_venta', 'stock_actual', 'stock_minimo', 'imagen'
         ]
         widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej. Taladro Percutor Bosch 800W'}),
             'categoria': forms.Select(attrs={'class': 'form-select'}),
             'proveedor': forms.Select(attrs={'class': 'form-select'}),
+            'precio_costo': forms.NumberInput(attrs={'class': 'form-control'}),
+            'precio_venta': forms.NumberInput(attrs={'class': 'form-control'}),
+            'stock_actual': forms.NumberInput(attrs={'class': 'form-control'}),
+            'stock_minimo': forms.NumberInput(attrs={'class': 'form-control'}),
+            'imagen': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
     def clean_imagen(self):
@@ -31,6 +37,28 @@ class MovimientoForm(forms.ModelForm):
         widgets = {
             'producto': forms.Select(attrs={'class': 'form-select'}),
             'tipo': forms.Select(attrs={'class': 'form-select'}),
+            # Agregamos esta línea para la cantidad:
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 15'}),
             'motivo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ['nombre', 'descripcion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej. Herramientas Eléctricas'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Breve descripción...'}),
+        }
+        
+class ProveedorForm(forms.ModelForm):
+    class Meta:
+        model = Proveedor
+        fields = ['nombre', 'contacto', 'telefono', 'email', 'direccion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la empresa'}),
+            'contacto': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del representante'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+56 9 ...'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'contacto@empresa.cl'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Dirección comercial'}),
+        }

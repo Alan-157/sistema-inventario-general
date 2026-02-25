@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Usuario
+from .forms import UsuarioForm
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from .forms import RegistroUsuarioForm
@@ -52,4 +53,34 @@ def registrar_usuario(request):
         form = RegistroUsuarioForm()
     return render(request, 'registration/registrar.html', {'form': form})
 
+@login_required
+@user_passes_test(es_admin_o_super)
+def crear_usuario(request):
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Usuario creado con éxito.")
+            return redirect('gestion_usuarios')
+    else:
+        form = UsuarioForm()
+    return render(request, 'usuarios/form_usuario.html', {'form': form, 'titulo': 'Crear Nuevo Usuario'})
 
+@login_required
+@user_passes_test(es_admin_o_super)
+def editar_usuario(request, pk):
+    usuario_editado = get_object_or_404(Usuario, pk=pk)
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST, request.FILES, instance=usuario_editado)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Usuario {usuario_editado.username} actualizado.")
+            return redirect('gestion_usuarios')
+    else:
+        form = UsuarioForm(instance=usuario_editado)
+    
+    return render(request, 'usuarios/form_usuario.html', {
+        'form': form, 
+        'usuario_editado': usuario_editado, 
+        'titulo': 'Editar Usuario'
+    })

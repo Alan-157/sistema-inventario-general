@@ -1,0 +1,14 @@
+<div class="d-flex justify-content-between align-items-center">
+    <small class="text-muted fw-bold">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</small>
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link shadow-sm" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+            {% endif %}
+            
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link shadow-sm" href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>

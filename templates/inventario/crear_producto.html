@@ -1,139 +1,115 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-lg border-0">
-            <div class="card-header bg-dark text-white p-4 text-center">
-                <h3 class="mb-0">
+<div class="container mt-2 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10"> 
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold text-dark">
                     {% if editando %}
-                        <i class="bi bi-pencil-square me-2"></i>Editar Producto
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>Editar Producto
                     {% else %}
-                        <i class="bi bi-plus-circle-dotted me-2"></i>Nuevo Producto
+                        <i class="bi bi-box-seam me-2 text-primary"></i>Crear Nuevo Producto
                     {% endif %}
-                </h3>
+                </h2>
+                <a href="{% url 'lista_productos' %}" class="btn btn-outline-secondary shadow-sm">
+                    <i class="bi bi-arrow-left"></i> Volver al Inventario
+                </a>
             </div>
-            <div class="card-body p-4 p-md-5">
-                <form method="POST" enctype="multipart/form-data" novalidate>
-                    {% csrf_token %}
+
+            <div class="card shadow border-0 rounded-4">
+                <div class="card-body p-4 p-md-5">
                     
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Nombre del Producto</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
-                                <input type="text" name="nombre" class="form-control {% if form.nombre.errors %}is-invalid{% endif %}" 
-                                       value="{{ form.nombre.value|default:'' }}" placeholder="Ej: Monitor Gamer 24'">
-                            </div>
-                            <div class="text-danger small">{{ form.nombre.errors }}</div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Categoría</label>
-                            {{ form.categoria }}
-                            <div class="text-danger small">{{ form.categoria.errors }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Proveedor</label>
-                            {{ form.proveedor }}
-                            <div class="text-danger small">{{ form.proveedor.errors }}</div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-bold">SKU / Código (Opcional)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-upc-scan"></i></span>
-                                <input type="text" name="sku" class="form-control" value="{{ form.sku.value|default:'' }}" placeholder="Dejar en blanco para autogenerar">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-muted">Costo Unitario ($)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" name="precio_costo" class="form-control" value="{{ form.precio_costo.value|default:'' }}">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-success">Precio Venta ($)</label>
-                            <div class="input-group">
-                                <span class="input-group-text text-success">$</span>
-                                <input type="number" name="precio_venta" class="form-control border-success" value="{{ form.precio_venta.value|default:'' }}">
-                            </div>
-                            <div class="text-danger small">{{ form.precio_venta.errors }}</div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Stock Inicial</label>
-                            <input type="number" name="stock_actual" class="form-control" value="{{ form.stock_actual.value|default:'0' }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Alerta Mínima</label>
-                            <input type="number" name="stock_minimo" class="form-control" value="{{ form.stock_minimo.value|default:'10' }}">
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Imagen (Solo JPG, máx 2MB)</label>
-                            <div class="border rounded p-3 bg-light text-center {% if form.imagen.errors %}border-danger{% endif %}">
-                                <div id="preview-container" class="mb-3 {% if not form.instance.imagen %}d-none{% endif %}">
-                                    <img id="image-preview" src="{% if form.instance.imagen %}{{ form.instance.imagen.url }}{% endif %}" 
-                                         class="img-thumbnail shadow-sm" style="max-height: 180px;">
-                                </div>
-                                <div id="upload-placeholder" class="{% if form.instance.imagen %}d-none{% endif %}">
-                                    <i class="bi bi-cloud-arrow-up display-6 d-block mb-2 text-muted"></i>
-                                    <p class="small text-muted mb-2">Haz clic para seleccionar un archivo JPG</p>
-                                </div>
-                                <input type="file" name="imagen" id="id_imagen" class="form-control form-control-sm" accept=".jpg,.jpeg">
-                                {% if form.imagen.errors %}
-                                    {% for error in form.imagen.errors %}
-                                        <div class="text-danger small mt-2 fw-bold"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
-                                    {% endfor %}
-                                {% endif %}
-                            </div>
-                        </div>
+                    <div class="mb-4">
+                        <h5 class="card-title fw-bold">Información Técnica y Comercial</h5>
+                        <p class="text-muted small">Completa los datos del producto. El código SKU se generará automáticamente de manera interna al guardar si se trata de un ingreso nuevo.</p>
                     </div>
+                    
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-7">
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.nombre.id_for_label }}" class="form-label fw-bold text-secondary">Nombre del Producto</label>
+                                    {{ form.nombre }}
+                                    {% if form.nombre.errors %}<div class="text-danger small mt-1">{{ form.nombre.errors }}</div>{% endif %}
+                                </div>
 
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger mt-3">
-                            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                                <div class="row g-3 mb-3">
+                                    <div class="col-sm-6">
+                                        <label for="{{ form.categoria.id_for_label }}" class="form-label fw-bold text-secondary">Categoría</label>
+                                        {{ form.categoria }}
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label for="{{ form.proveedor.id_for_label }}" class="form-label fw-bold text-secondary">Proveedor</label>
+                                        {{ form.proveedor }}
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label for="{{ form.precio_costo.id_for_label }}" class="form-label fw-bold text-secondary">Precio Costo</label>
+                                        <div class="input-group shadow-sm">
+                                            <span class="input-group-text bg-light"><i class="bi bi-currency-dollar"></i></span>
+                                            {{ form.precio_costo }}
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label for="{{ form.precio_venta.id_for_label }}" class="form-label fw-bold text-secondary">Precio Venta</label>
+                                        <div class="input-group shadow-sm">
+                                            <span class="input-group-text bg-light text-success fw-bold"><i class="bi bi-currency-dollar"></i></span>
+                                            {{ form.precio_venta }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-5 border-start ps-md-4">
+                                
+                                <div class="row g-3 mb-4">
+                                    <div class="col-sm-6">
+                                        <label for="{{ form.stock_actual.id_for_label }}" class="form-label fw-bold text-secondary">Stock Inicial</label>
+                                        {{ form.stock_actual }}
+                                        <div class="form-text">Cant. disponible.</div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label for="{{ form.stock_minimo.id_for_label }}" class="form-label fw-bold text-secondary">Stock Mínimo</label>
+                                        {{ form.stock_minimo }}
+                                        <div class="form-text">Límite alerta.</div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.imagen.id_for_label }}" class="form-label fw-bold text-secondary">Fotografía</label>
+                                    {{ form.imagen }}
+                                    {% if form.imagen.errors %}<div class="text-danger small mt-1">{{ form.imagen.errors }}</div>{% endif %}
+                                    
+                                    <div class="alert alert-warning py-2 mt-3 mb-0 border-0 shadow-sm d-flex align-items-center rounded-3">
+                                        <i class="bi bi-file-image me-3 fs-4 text-warning"></i>
+                                        <small class="text-dark"><strong>Requisito:</strong> Sube imágenes exclusivamente en formato <strong>JPG</strong> y que pesen máximo <strong>2MB</strong>.</small>
+                                    </div>
+                                </div>
+                                
+                            </div>
                         </div>
-                    {% endif %}
 
-                    <div class="d-grid gap-2 mt-5">
-                        <button type="submit" class="btn btn-primary btn-lg shadow-sm">
-                            <i class="bi bi-save me-2"></i>{% if editando %}Actualizar{% else %}Guardar{% endif %} Producto
-                        </button>
-                        <a href="{% url 'lista_productos' %}" class="btn btn-link text-muted">Cancelar y volver</a>
-                    </div>
-                </form>
+                        <hr class="text-muted my-4 opacity-25">
+
+                        <div class="d-flex justify-content-end gap-3">
+                            <a href="{% url 'lista_productos' %}" class="btn btn-light border px-4 shadow-sm">Cancelar</a>
+                            <button type="submit" class="btn btn-success px-4 shadow-sm fw-bold">
+                                <i class="bi bi-save me-2"></i> 
+                                {% if editando %}Actualizar Producto{% else %}Guardar Producto{% endif %}
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-    document.getElementById('id_imagen').onchange = function (evt) {
-        const [file] = this.files;
-        const previewContainer = document.getElementById('preview-container');
-        const previewImage = document.getElementById('image-preview');
-        const placeholder = document.getElementById('upload-placeholder');
-        if (file) {
-            previewImage.src = URL.createObjectURL(file);
-            previewContainer.classList.remove('d-none');
-            placeholder.classList.add('d-none');
-        }
-    };
-</script>
-
-<style>
-    /* Aplicamos estilo de Bootstrap a los select generados por Django */
-    select { 
-        display: block; 
-        width: 100%; 
-        border-radius: 0.375rem; 
-        border: 1px solid #ced4da; 
-        padding: 0.375rem 0.75rem; 
-        background-color: #fff;
-    }
-</style>
 {% endblock %}

@@ -1,29 +1,68 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow border-0 mt-5">
-            <div class="card-body p-5">
-                <h2 class="text-center mb-4 font-weight-bold">Crear Cuenta</h2>
-                <form method="post">
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label">{{ field.label }}</label>
-                            {{ field.errors }}
-                            <input type="{{ field.field.widget.input_type }}" 
-                                name="{{ field.name }}" 
-                                class="form-control" 
-                                placeholder="Ingrese {{ field.label }}">
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center align-items-center">
+        <div class="col-md-7 col-lg-6">
+            
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-4 p-sm-5">
+                    
+                    <div class="text-center mb-4">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3 shadow-sm" style="width: 80px; height: 80px;">
+                            <i class="bi bi-person-plus text-success" style="font-size: 2.5rem;"></i>
                         </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary w-100 shadow-sm mb-3">Registrarse</button>
-                    <div class="text-center">
-                        <small class="text-muted">¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión aquí</a></small>
+                        <h3 class="fw-bold text-dark mb-1">Crear una Cuenta</h3>
+                        <p class="text-muted small">Únete al sistema como Cliente para acceder al catálogo.</p>
                     </div>
-                </form>
+
+                    <form method="post" action="{% url 'registrar' %}" novalidate>
+                        {% csrf_token %}
+                        
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label fw-bold text-secondary small text-uppercase">
+                                    {{ field.label }}
+                                </label>
+                                
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        {% if 'password' in field.name %}<i class="bi bi-lock-fill text-muted"></i>
+                                        {% elif 'email' in field.name %}<i class="bi bi-envelope-fill text-muted"></i>
+                                        {% else %}<i class="bi bi-person-fill text-muted"></i>{% endif %}
+                                    </span>
+                                    
+                                    <input type="{{ field.field.widget.input_type }}" 
+                                        name="{{ field.name }}" 
+                                        id="{{ field.id_for_label }}" 
+                                        class="form-control border-start-0 ps-0" 
+                                        {% if field.field.required %}required{% endif %}
+                                        {% if field.value %}value="{{ field.value }}"{% endif %}>
+                                </div>
+                                
+                                {% if field.errors %}
+                                    <div class="text-danger small mt-1 fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                                {% endif %}
+                                {% if field.help_text %}
+                                    <div class="form-text small opacity-75">{{ field.help_text|safe }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        <button type="submit" class="btn btn-success w-100 py-2 shadow-sm fw-bold fs-6 rounded-3 mt-4">
+                            Registrarme <i class="bi bi-check-circle ms-2"></i>
+                        </button>
+                    </form>
+
+                </div>
             </div>
+            
+            <div class="text-center mt-4">
+                <p class="text-muted fw-semibold">
+                    ¿Ya tienes una cuenta? <a href="{% url 'login' %}" class="text-decoration-none fw-bold text-primary">Inicia sesión aquí</a>
+                </p>
+            </div>
+
         </div>
     </div>
 </div>

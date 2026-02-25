@@ -1,40 +1,93 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="card shadow">
-    <div class="card-header bg-dark text-white d-flex justify-content-between">
-        <h4 class="mb-0">Gestión de Usuarios y Roles</h4>
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="fw-bold text-dark"><i class="bi bi-people-fill me-2 text-primary"></i>Gestión de Usuarios</h2>
+        <p class="text-muted">Administración de roles, accesos y permisos del sistema.</p>
     </div>
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'crear_usuario' %}" class="btn btn-primary shadow-sm rounded-pill px-4">
+            <i class="bi bi-person-plus-fill me-2"></i>Nuevo Usuario
+        </a>
+    </div>
+</div>
+
+<div class="card shadow border-0 rounded-4">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
                 <tr>
-                    <th>Username</th>
-                    <th>Email</th>
+                    <th class="ps-4">Usuario y Contacto</th>
+                    <th>Estado</th>
                     <th>Rol Actual</th>
-                    <th>Acciones</th>
+                    <th class="text-center">Cambiar Rol</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for u in usuarios %}
                 <tr>
-                    <td>{{ u.username }}</td>
-                    <td>{{ u.email }}</td>
-                    <td><span class="badge bg-secondary">{{ u.get_rol_display }}</span></td>
+                    <td class="ps-4 py-3">
+                        <div class="d-flex align-items-center">
+                            {% if u.avatar %}
+                                <img src="{{ u.avatar.url }}" class="rounded-circle me-3 shadow-sm border" style="width: 45px; height: 45px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-light rounded-circle d-flex justify-content-center align-items-center text-secondary me-3 shadow-sm" style="width: 45px; height: 45px;">
+                                    <i class="bi bi-person-fill fs-4"></i>
+                                </div>
+                            {% endif %}
+                            
+                            <div>
+                                <h6 class="mb-0 fw-bold text-dark">{{ u.username }}</h6>
+                                <small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ u.email }}</small>
+                            </div>
+                        </div>
+                    </td>
                     <td>
-                        <form action="{% url 'cambiar_rol' u.id %}" method="POST" class="d-inline flex">
+                        {% if u.is_active %}
+                            <span class="badge rounded-pill bg-success bg-opacity-10 text-success small border border-success border-opacity-25">Activo</span>
+                        {% else %}
+                            <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary small border border-secondary border-opacity-25">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.rol == 'SUPERUSUARIO' %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2"><i class="bi bi-star-fill me-1"></i>Superusuario</span>
+                        {% elif u.rol == 'ADMIN' %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2"><i class="bi bi-shield-check me-1"></i>Administrador</span>
+                        {% elif u.rol == 'TRABAJADOR' %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2"><i class="bi bi-tools me-1"></i>Trabajador</span>
+                        {% else %}
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2"><i class="bi bi-person me-1"></i>Cliente</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <form action="{% url 'cambiar_rol' u.id %}" method="POST" class="d-flex justify-content-center align-items-center m-0">
                             {% csrf_token %}
-                            <select name="rol" class="form-select form-select-sm d-inline w-auto">
-                                {% for key, val in u.ROLES %}
-                                    {% if key != 'SUPERUSUARIO' or user.rol == 'SUPERUSUARIO' %}
-                                    <option value="{{ key }}" {% if u.rol == key %}selected{% endif %}>{{ val }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-primary">Actualizar</button>
+                            <div class="input-group input-group-sm w-auto shadow-sm">
+                                <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                <select name="rol" class="form-select border-start-0 text-secondary fw-semibold" style="min-width: 140px;">
+                                    {% for key, val in u.ROLES %}
+                                        {% if key != 'SUPERUSUARIO' or request.user.rol == 'SUPERUSUARIO' or request.user.is_superuser %}
+                                        <option value="{{ key }}" {% if u.rol == key %}selected{% endif %}>{{ val }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-outline-primary fw-bold px-3" title="Actualizar Rol">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </div>
                         </form>
                     </td>
+                    <td class="text-center">
+                        <a href="{% url 'editar_usuario' u.pk %}" class="btn btn-sm btn-outline-dark rounded-circle" title="Editar Perfil Completo">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                    </td>
                 </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center py-5 text-muted">No hay usuarios para mostrar.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

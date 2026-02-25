@@ -10,6 +10,7 @@ class Usuario(AbstractUser):
     ]
     
     rol = models.CharField(max_length=20, choices=ROLES, default='CLIENTE')
+    avatar = models.ImageField(upload_to='avatares/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Si el usuario es marcado como superusuario de Django, 

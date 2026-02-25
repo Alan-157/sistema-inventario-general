@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4 mb-5 overflow-hidden bg-primary text-white position-relative">
+    <div class="position-absolute top-0 end-0 h-100 w-50 bg-white opacity-10" style="clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
+    
+    <div class="card-body p-5 position-relative z-1">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="display-5 fw-bold mb-3">¡Hola, {{ user.username }}! 👋</h2>
+                <p class="lead mb-4 opacity-75">Bienvenido a tu panel personal. Explora nuestro catálogo y descubre los nuevos productos que tenemos disponibles para ti hoy.</p>
+                <a href="{% url 'catalogo_cliente' %}" class="btn btn-light btn-lg text-primary fw-bold shadow-sm rounded-pill px-4">
+                    <i class="bi bi-shop me-2"></i> Ir al Catálogo Completo
+                </a>
+            </div>
+            <div class="col-md-4 text-center d-none d-md-block">
+                <i class="bi bi-bag-heart text-white opacity-50" style="font-size: 8rem;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-shadow transition-all">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="bg-success bg-opacity-10 rounded-circle p-3 me-4 text-success">
+                    <i class="bi bi-box2-heart fs-1"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold text-dark mb-0">{{ total_disponibles }}</h3>
+                    <p class="text-muted mb-0">Productos disponibles listos para ti</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-shadow transition-all">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="bg-info bg-opacity-10 rounded-circle p-3 me-4 text-info">
+                    <i class="bi bi-tags fs-1"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold text-dark mb-0">{{ categorias_activas }}</h3>
+                    <p class="text-muted mb-0">Categorías diferentes para explorar</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="fw-bold text-dark mb-4"><i class="bi bi-stars text-warning me-2"></i>Nuevos Ingresos</h4>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4 mb-4">
+    {% for producto in ultimos_productos %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 rounded-4 hover-shadow transition-all">
+            
+            <div class="position-relative bg-light rounded-top-4 d-flex justify-content-center align-items-center border-bottom" style="height: 180px; overflow: hidden;">
+                {% if producto.imagen %}
+                    <img src="{{ producto.imagen.url }}" class="img-fluid p-3" alt="{{ producto.nombre }}" style="object-fit: contain; max-height: 100%; width: 100%;">
+                {% else %}
+                    <i class="bi bi-image text-secondary opacity-25" style="font-size: 4rem;"></i>
+                {% endif %}
+                <span class="position-absolute top-0 start-0 bg-danger text-white badge rounded-pill m-2 shadow-sm px-2 py-1 small">
+                    ¡Nuevo!
+                </span>
+            </div>
+
+            <div class="card-body d-flex flex-column p-3">
+                <h6 class="card-title fw-bold text-dark mb-1 text-truncate" title="{{ producto.nombre }}">{{ producto.nombre }}</h6>
+                <small class="text-muted mb-3">{{ producto.categoria.nombre }}</small>
+                
+                <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <span class="fs-5 fw-bold text-success">${{ producto.precio_venta }}</span>
+                    <a href="{% url 'detalle_producto' producto.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">Ver <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-4">
+        <p class="text-muted">No hay productos nuevos en este momento. ¡Revisa el catálogo completo!</p>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.15)!important;
+    }
+    .transition-all {
+        transition: all .3s ease-in-out;
+    }
+</style>
+{% endblock %}

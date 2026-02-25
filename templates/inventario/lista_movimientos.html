@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-5">
+        <h2 class="fw-bold"><i class="bi bi-clock-history me-2"></i>Kardex</h2>
+    </div>
+    <div class="col-md-4">
+        <div class="input-group shadow-sm">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="buscador-ajax" class="form-control border-start-0" placeholder="Buscar por producto, SKU o motivo..." autocomplete="off">
+        </div>
+    </div>
+    <div class="col-md-3 text-end">
+        <a href="{% url 'registrar_movimiento' %}" class="btn btn-primary shadow-sm w-100">
+            <i class="bi bi-plus-lg"></i> Registrar
+        </a>
+    </div>
+</div>
+
+<div class="card shadow border-0">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Fecha</th>
+                    <th>Producto (SKU)</th>
+                    <th>Tipo</th>
+                    <th>Cant.</th>
+                    <th>Usuario</th>
+                    <th>Motivo</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-movimientos">
+                {% for mov in page_obj %}
+                <tr>
+                    <td class="ps-4 text-muted small fw-bold">{{ mov.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'detalle_producto' mov.producto.pk %}" class="text-decoration-none fw-bold text-dark">{{ mov.producto.nombre }}</a>
+                        <br><small class="text-muted">{{ mov.producto.sku }}</small>
+                    </td>
+                    <td>
+                        {% if mov.tipo == 'ENTRADA' %}
+                            <span class="badge bg-success shadow-sm"><i class="bi bi-arrow-down-left-circle"></i> Entrada</span>
+                        {% elif mov.tipo == 'SALIDA' %}
+                            <span class="badge bg-danger shadow-sm"><i class="bi bi-arrow-up-right-circle"></i> Salida</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark shadow-sm"><i class="bi bi-arrow-repeat"></i> Ajuste</span>
+                        {% endif %}
+                    </td>
+                    <td class="fw-bold fs-5">{{ mov.cantidad }}</td>
+                    <td><span class="badge bg-secondary">{{ mov.usuario.username }}</span></td>
+                    <td class="text-muted small">{{ mov.motivo|default:"Sin motivo" }}</td>
+                </tr>
+                {% empty %}
+                <tr id="fila-vacia"><td colspan="6" class="text-center py-5 text-muted">No hay movimientos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div id="paginador-contenedor" class="card-footer bg-white border-top align-items-center d-flex justify-content-between py-3">
+        <small class="text-muted fw-bold">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</small>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const inputBuscador = document.getElementById("buscador-ajax");
+    const tabla = document.getElementById("tabla-movimientos");
+    const paginador = document.getElementById("paginador-contenedor");
+
+    inputBuscador.addEventListener("keyup", function() {
+        let query = this.value;
+        let url = "{% url 'lista_movimientos' %}?q=" + query;
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            tabla.innerHTML = ""; // Limpiamos la tabla
+            
+            if(query.length > 0) {
+                paginador.style.display = "none"; // Ocultamos paginador si estamos buscando
+            } else {
+                paginador.style.display = "flex";
+            }
+
+            if (data.movimientos.length === 0) {
+                tabla.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron resultados para "${query}".</td></tr>`;
+                return;
+            }
+
+            // Reconstruimos las filas con los datos JSON recibidos
+            data.movimientos.forEach(mov => {
+                let badgeTipo = "";
+                if (mov.tipo === 'ENTRADA') badgeTipo = '<span class="badge bg-success shadow-sm"><i class="bi bi-arrow-down-left-circle"></i> Entrada</span>';
+                else if (mov.tipo === 'SALIDA') badgeTipo = '<span class="badge bg-danger shadow-sm"><i class="bi bi-arrow-up-right-circle"></i> Salida</span>';
+                else badgeTipo = '<span class="badge bg-info text-dark shadow-sm"><i class="bi bi-arrow-repeat"></i> Ajuste</span>';
+
+                let fila = `
+                <tr>
+                    <td class="ps-4 text-muted small fw-bold">${mov.fecha}</td>
+                    <td>
+                        <a href="/inventario/producto/${mov.producto_id}/" class="text-decoration-none fw-bold text-dark">${mov.producto_nombre}</a>
+                        <br><small class="text-muted">${mov.producto_sku}</small>
+                    </td>
+                    <td>${badgeTipo}</td>
+                    <td class="fw-bold fs-5">${mov.cantidad}</td>
+                    <td><span class="badge bg-secondary">${mov.usuario}</span></td>
+                    <td class="text-muted small">${mov.motivo}</td>
+                </tr>`;
+                tabla.innerHTML += fila;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

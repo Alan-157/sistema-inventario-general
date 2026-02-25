@@ -1,89 +1,142 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h2 class="fw-bold"><i class="bi bi-speedometer2 me-2"></i>Panel de Control</h2>
-        <p class="text-muted">Estado del Kardex e Inventario</p>
+<div class="row mb-4 align-items-center">
+    <div class="col-12">
+        <h2 class="fw-bold text-dark"><i class="bi bi-speedometer2 me-2 text-primary"></i>Panel de Control</h2>
+        <p class="text-muted">Resumen general del estado del inventario y movimientos recientes.</p>
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card bg-primary text-white shadow border-0">
-            <div class="card-body p-4 text-center">
-                <h5 class="text-uppercase opacity-75 small">Total Productos Activos</h5>
-                <h2 class="display-4 fw-bold mb-0">{{ total_productos }}</h2>
+<div class="row g-4 mb-4">
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-primary text-white rounded-4 h-100">
+            <div class="card-body d-flex align-items-center p-4">
+                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
+                    <i class="bi bi-box-seam fs-1"></i>
+                </div>
+                <div>
+                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Total Productos Activos</h6>
+                    <h2 class="mb-0 fw-bold display-6">{{ total_productos }}</h2>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card {% if cantidad_criticos > 0 %}bg-danger{% else %}bg-success{% endif %} text-white shadow border-0 text-center">
-            <div class="card-body p-4">
-                <h5 class="text-uppercase opacity-75 small">Productos bajo Stock Mínimo</h5>
-                <h2 class="display-4 fw-bold mb-0">{{ cantidad_criticos }}</h2>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-danger text-white rounded-4 h-100">
+            <div class="card-body d-flex align-items-center p-4">
+                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
+                    <i class="bi bi-exclamation-triangle fs-1"></i>
+                </div>
+                <div>
+                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Productos en Nivel Crítico</h6>
+                    <h2 class="mb-0 fw-bold display-6">{{ cantidad_criticos }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-success text-white rounded-4 h-100 position-relative overflow-hidden">
+            <div class="card-body d-flex align-items-center justify-content-between p-4">
+                <div class="d-flex align-items-center z-1">
+                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
+                        <i class="bi bi-arrow-left-right fs-1"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Acción Rápida</h6>
+                        <h5 class="mb-0 fw-bold">Nuevo Movimiento</h5>
+                    </div>
+                </div>
+                <a href="{% url 'registrar_movimiento' %}" class="btn btn-light btn-sm text-success fw-bold stretched-link shadow-sm z-1 rounded-pill px-3 py-2">
+                    Ir ahora <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+                <i class="bi bi-plus-circle-fill position-absolute text-white opacity-10" style="font-size: 10rem; right: -20px; top: -20px;"></i>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row g-4">
-    <div class="col-md-7">
-        <div class="card shadow border-0 mb-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart me-2"></i>Distribución por Categorías</h5>
+    <div class="col-lg-8">
+        
+        <div class="card shadow border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Distribución por Categoría</h5>
             </div>
-            <div class="card-body">
-                <canvas id="categoriaChart" style="max-height: 300px;"></canvas>
+            <div class="card-body px-4 pb-4">
+                <canvas id="graficoCategorias" height="100"></canvas>
             </div>
         </div>
 
-        <div class="card shadow border-0">
-            <div class="card-header bg-dark text-white">
-                <h6 class="mb-0">Productos Críticos (LTE Stock Mínimo)</h6>
+        <div class="card shadow border-0 rounded-4 mb-4 mb-lg-0">
+            <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center pt-4 pb-2 px-4">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-secondary me-2"></i>Últimos Movimientos</h5>
+                <a href="{% url 'lista_movimientos' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Ver todos</a>
             </div>
-            <div class="table-responsive">
-                <table class="table table-sm table-hover mb-0">
-                    <thead>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Producto</th>
-                            <th>Stock</th>
-                            <th>Mín.</th>
+                            <th class="ps-4 text-muted small text-uppercase">Fecha</th>
+                            <th class="text-muted small text-uppercase">Producto</th>
+                            <th class="text-muted small text-uppercase">Tipo</th>
+                            <th class="text-muted small text-uppercase">Cant.</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for prod in productos_criticos %}
+                        {% for mov in ultimos_movimientos %}
                         <tr>
-                            <td>{{ prod.nombre }}</td>
-                            <td class="text-danger fw-bold">{{ prod.stock_actual }}</td>
-                            <td>{{ prod.stock_minimo }}</td>
+                            <td class="ps-4 text-muted small fw-semibold">{{ mov.created_at|date:"d/m H:i" }}</td>
+                            <td class="fw-bold text-dark">{{ mov.producto.nombre }}</td>
+                            <td>
+                                {% if mov.tipo == 'ENTRADA' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-arrow-down-left"></i> Entrada</span>
+                                {% elif mov.tipo == 'SALIDA' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-arrow-up-right"></i> Salida</span>
+                                {% else %}
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1"><i class="bi bi-arrow-repeat"></i> Ajuste</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold fs-6">{{ mov.cantidad }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="3" class="text-center py-3 text-success">Todo el stock está ok.</td></tr>
+                        <tr><td colspan="4" class="text-center py-5 text-muted">No hay movimientos recientes registrados.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-5">
-        <div class="card shadow border-0">
-            <div class="card-header bg-info text-dark">
-                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Actividad del Kardex</h5>
+
+    <div class="col-lg-4">
+        <div class="card shadow border-0 rounded-4 h-100 border-top border-danger border-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <h5 class="fw-bold text-danger mb-0"><i class="bi bi-exclamation-octagon-fill me-2"></i>Atención Requerida</h5>
+                <p class="text-muted small mt-1">Stock igual o inferior al mínimo configurado.</p>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-0 mt-2">
                 <ul class="list-group list-group-flush">
-                    {% for mov in ultimos_movimientos %}
-                    <li class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="badge {% if mov.tipo == 'ENTRADA' %}bg-success{% elif mov.tipo == 'SALIDA' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                {{ mov.get_tipo_display }}
-                            </span>
-                            <small class="text-muted">{{ mov.created_at|date:"d/m H:i" }}</small>
+                    {% for prod in productos_criticos %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 border-light">
+                        <div>
+                            <a href="{% url 'detalle_producto' prod.pk %}" class="mb-0 fw-bold text-dark text-decoration-none">{{ prod.nombre }}</a>
+                            <small class="d-block text-muted">SKU: <code>{{ prod.sku }}</code></small>
                         </div>
-                        <p class="mb-0 fw-bold small">{{ mov.producto.nombre }} (Cant: {{ mov.cantidad }})</p>
-                        <small class="text-primary">Por: {{ mov.usuario.username }}</small>
+                        <div class="text-end">
+                            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm fs-6">{{ prod.stock_actual }} un.</span>
+                            <small class="d-block text-muted mt-1 fw-bold" style="font-size: 0.75rem;">Mínimo: {{ prod.stock_minimo }}</small>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-5 border-0">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex p-4 mb-3 shadow-sm">
+                            <i class="bi bi-check-lg" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Todo en orden</h5>
+                        <p class="text-muted small mb-0">Ningún producto está en nivel crítico de stock.</p>
                     </li>
                     {% endfor %}
                 </ul>
@@ -92,40 +145,54 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('categoriaChart').getContext('2d');
+        // Extraemos los datos enviados desde Django (views.py)
+        const labels = [
+            {% for item in datos_grafico %}
+                "{{ item.categoria__nombre }}"{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        ];
         
+        const data = [
+            {% for item in datos_grafico %}
+                {{ item.total }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        ];
+
+        const ctx = document.getElementById('graficoCategorias').getContext('2d');
+        
+        // Paleta de colores vibrantes para el gráfico
+        const backgroundColors = [
+            'rgba(13, 110, 253, 0.85)', // Primary
+            'rgba(25, 135, 84, 0.85)',  // Success
+            'rgba(255, 193, 7, 0.85)',  // Warning
+            'rgba(220, 53, 69, 0.85)',  // Danger
+            'rgba(111, 66, 193, 0.85)', // Purple
+            'rgba(23, 162, 184, 0.85)'  // Info
+        ];
+
         new Chart(ctx, {
-            type: 'doughnut',
+            type: 'bar', // Gráfico de barras
             data: {
-                // Generamos las etiquetas (labels)
-                labels: [
-                    {% for item in datos_grafico %}
-                        "{{ item.categoria__nombre }}",
-                    {% endfor %}
-                ],
+                labels: labels,
                 datasets: [{
-                    // Aquí estaba el detalle: falta el inicio de la llave del objeto
-                    label: 'Productos por Categoría',
-                    data: [
-                        {% for item in datos_grafico %}
-                            {{ item.total }},
-                        {% endfor %}
-                    ],
-                    backgroundColor: [
-                        '#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#d63384', '#fd7e14'
-                    ],
-                    borderWidth: 1
+                    label: 'Cantidad de Productos',
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 0,
+                    borderRadius: 8 // Bordes redondeados súper estéticos
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'bottom'
+                    legend: { display: false } // Ocultamos la leyenda
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 } // Para que no muestre decimales en los productos
                     }
                 }
             }

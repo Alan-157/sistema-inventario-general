@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-2 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold text-dark">
+                    <i class="bi bi-person-gear me-2 text-primary"></i>{{ titulo }}
+                </h2>
+                <a href="{% url 'gestion_usuarios' %}" class="btn btn-outline-secondary shadow-sm">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            <div class="card shadow border-0 rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        <div class="row g-4">
+                            <div class="col-md-4 text-center border-end">
+                                <label class="form-label fw-bold d-block mb-3">Foto de Perfil</label>
+                                {% if usuario_editado.avatar %}
+                                    <img src="{{ usuario_editado.avatar.url }}" class="rounded-circle shadow mb-3 border border-3 border-light" style="width: 150px; height: 150px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 150px; height: 150px;">
+                                        <i class="bi bi-person text-secondary" style="font-size: 5rem;"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="mt-2">
+                                    {{ form.avatar }}
+                                    <div class="form-text small">JPG o PNG (Max 2MB)</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-secondary">Nombre de Usuario</label>
+                                    {{ form.username }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-secondary">Email</label>
+                                    {{ form.email }}
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label class="form-label fw-bold text-secondary">Rol del Sistema</label>
+                                        {{ form.rol }}
+                                    </div>
+                                    <div class="col-sm-6 d-flex align-items-end">
+                                        <div class="form-check mb-2">
+                                            {{ form.is_active }}
+                                            <label class="form-check-label fw-bold ms-2">Usuario Activo</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 pt-3 border-top">
+                                    <label class="form-label fw-bold text-primary small"><i class="bi bi-key"></i> SEGURIDAD</label>
+                                    {{ form.password }}
+                                    <div class="form-text">Si estás editando, deja este campo vacío para mantener la contraseña actual.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="text-muted my-4 opacity-25">
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                                <i class="bi bi-save me-2"></i> Guardar Usuario
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
