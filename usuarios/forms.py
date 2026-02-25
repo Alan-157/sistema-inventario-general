@@ -33,3 +33,14 @@ class UsuarioForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+    
+class PerfilUsuarioForm(forms.ModelForm):
+    class Meta:
+        model = Usuario
+        fields = ['first_name', 'last_name', 'email', 'avatar']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control rounded-pill'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control rounded-pill'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control rounded-pill'}),
+            'avatar': forms.FileInput(attrs={'class': 'form-control'}),
+        }

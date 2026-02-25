@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Helvetica', sans-serif; color: #333; }
+        .header { text-align: center; border-bottom: 2px solid #444; margin-bottom: 20px; padding-bottom: 10px; }
+        .summary-box { background: #f8f9fa; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; font-size: 11px; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .text-right { text-align: right; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10px; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>REPORTE DE VENTAS - SECRETO HELADERÍA</h2>
+        <p>Fecha de emisión: {{ fecha|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <div class="summary-box">
+        <table style="border: none;">
+            <tr style="border: none;">
+                <td style="border: none;"><strong>Total Ventas:</strong> ${{ total_ventas|floatformat:0 }}</td>
+                <td style="border: none;"><strong>Cant. Pedidos:</strong> {{ cantidad_pedidos }}</td>
+                <td style="border: none;"><strong>Ticket Promedio:</strong> ${{ promedio_venta|floatformat:0 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID Pedido</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Productos</th>
+                <th class="text-right">Total Pagado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pedido in pedidos %}
+            <tr>
+                <td>#{{ pedido.id }}</td>
+                <td>{{ pedido.fecha_pedido|date:"d/m/Y" }}</td>
+                <td>{{ pedido.cliente.username }}</td>
+                <td>
+                    {% for detalle in pedido.detalles.all %}
+                        {{ detalle.cantidad }}x {{ detalle.producto.nombre }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </td>
+                <td class="text-right">${{ pedido.total|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">Generado por: {{ user.username }} | Secreto Heladería S.A.</div>
+</body>
+</html>

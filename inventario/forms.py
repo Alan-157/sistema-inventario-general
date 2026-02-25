@@ -33,13 +33,19 @@ class ProductoForm(forms.ModelForm):
 class MovimientoForm(forms.ModelForm):
     class Meta:
         model = HistorialMovimiento
-        fields = ['producto', 'tipo', 'cantidad', 'motivo']
+        # 1. Cambiamos 'descripcion' por 'motivo' aquí
+        fields = ['producto', 'tipo', 'cantidad', 'motivo'] 
+        
         widgets = {
             'producto': forms.Select(attrs={'class': 'form-select'}),
             'tipo': forms.Select(attrs={'class': 'form-select'}),
-            # Agregamos esta línea para la cantidad:
             'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 15'}),
-            'motivo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            # 2. Y aquí también en el widget
+            'motivo': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3,
+                'placeholder': 'Escribe el motivo del movimiento...'
+            }),
         }
         
 class CategoriaForm(forms.ModelForm):

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 text-center text-lg-start">
+        <h2 class="fw-bold text-dark"><i class="bi bi-person-badge me-2 text-primary"></i>Configuración de Perfil</h2>
+        <p class="text-muted">Personaliza tu información y mantén tu cuenta segura.</p>
+    </div>
+</div>
+
+<div class="row g-4 justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow border-0 rounded-4">
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="text-center mb-4">
+                        {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" class="rounded-circle shadow-sm border border-4 border-white" style="width: 130px; height: 130px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0D6EFD&color=fff&size=130" class="rounded-circle shadow-sm">
+                        {% endif %}
+                        <div class="mt-2 fw-bold text-primary">{{ user.username }}</div>
+                        <span class="badge bg-light text-dark border small">{{ user.get_rol_display }}</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Nombre</label>
+                            {{ form_perfil.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Apellido</label>
+                            {{ form_perfil.last_name }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Correo Electrónico</label>
+                            {{ form_perfil.email }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Actualizar Foto</label>
+                            {{ form_perfil.avatar }}
+                        </div>
+                        <div class="col-12 pt-3">
+                            <button type="submit" name="btn_perfil" class="btn btn-primary w-100 rounded-pill fw-bold">
+                                Actualizar Información
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow border-0 rounded-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-4 text-danger"><i class="bi bi-shield-lock me-2"></i>Seguridad</h5>
+                <form method="POST">
+                    {% csrf_token %}
+                    {% for field in form_password %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">{{ field.label }}</label>
+                            <input type="{{ field.field.widget.input_type }}" name="{{ field.html_name }}" class="form-control rounded-pill">
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" name="btn_password" class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-2">
+                        Cambiar Contraseña
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

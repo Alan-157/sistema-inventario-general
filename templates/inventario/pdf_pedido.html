@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; color: #333; }
+        .header { text-align: center; border-bottom: 2px solid #0d6efd; padding-bottom: 20px; }
+        .info { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; text-align: left; }
+        td { border: 1px solid #dee2e6; padding: 12px; }
+        .total { text-align: right; font-size: 1.2rem; font-weight: bold; margin-top: 20px; color: #0d6efd; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 0.8rem; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SECRETO HELADERÍA</h1>
+        <p>Comprobante de Solicitud de Pedido</p>
+    </div>
+
+    <div class="info">
+        <p><strong>N° Pedido:</strong> #{{ pedido.id }}</p>
+        <p><strong>Cliente:</strong> {{ pedido.cliente.get_full_name|default:pedido.cliente.username }}</p>
+        <p><strong>Fecha:</strong> {{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</p>
+        <p><strong>Estado:</strong> {{ pedido.get_estado_display }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio Unit.</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detalle in pedido.detalles.all %}
+            <tr>
+                <td>{{ detalle.producto.nombre }}</td>
+                <td>{{ detalle.cantidad }}</td>
+                <td>${{ detalle.precio_unitario|floatformat:0 }}</td>
+                <td>${{ detalle.subtotal|floatformat:0 }}</td> </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total">
+        TOTAL: ${{ pedido.total|floatformat:0 }}
+    </div>
+
+    <div class="footer">
+        Este documento es un comprobante interno de solicitud. Sistema de Inventario - INACAP 2026.
+    </div>
+</body>
+</html>

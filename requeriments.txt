@@ -4,3 +4,4 @@ libmysqlclient
 openpyxl
 Pillow
 xhtml2pdf
+weasyprint

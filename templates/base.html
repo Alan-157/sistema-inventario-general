@@ -15,6 +15,20 @@
         .main-container {
             min-height: 80vh;
         }
+        /* Estilo para el punto de notificación en la campana */
+        .badge-notification {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            padding: 4px 6px;
+            border-radius: 50%;
+            font-size: 0.6rem;
+        }
+        /* Mejoras visuales para los dropdowns */
+        .dropdown-menu {
+            border-radius: 10px;
+            margin-top: 10px !important;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -37,7 +51,10 @@
                     
                     {% if user.rol == 'CLIENTE' %}
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'catalogo_cliente' %}active{% endif %}" href="{% url 'catalogo_cliente' %}">Ver Catálogo</a>
+                            <a class="nav-link {% if request.resolver_match.url_name == 'catalogo_cliente' %}active{% endif %}" href="{% url 'catalogo_cliente' %}">Comprar</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'mis_pedidos' %}active{% endif %}" href="{% url 'mis_pedidos' %}">Mis Pedidos</a>
                         </li>
                     {% else %}
                         <li class="nav-item">
@@ -49,9 +66,27 @@
                                 Movimientos
                             </a>
                             <ul class="dropdown-menu shadow border-0" aria-labelledby="navbarMovimientos">
-                                <li><a class="dropdown-item" href="{% url 'registrar_movimiento' %}"><i class="bi bi-plus-circle me-2"></i>Registrar Nuevo</a></li>
-                                <li><a class="dropdown-item" href="{% url 'lista_movimientos' %}"><i class="bi bi-card-list me-2"></i>Historial (Kardex)</a></li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{% url 'lista_movimientos' %}">
+                                        <i class="bi bi-card-list me-2 text-primary"></i>Historial (Kardex)
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{% url 'registrar_movimiento' %}?tipo=ENTRADA">
+                                        <i class="bi bi-arrow-down-circle text-success me-2"></i>Registrar Entrada
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{% url 'registrar_movimiento' %}?tipo=SALIDA">
+                                        <i class="bi bi-arrow-up-circle text-danger me-2"></i>Registrar Salida
+                                    </a>
+                                </li>
                             </ul>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'gestion_pedidos' %}active{% endif %}" href="{% url 'gestion_pedidos' %}">Gestionar Pedidos</a>
                         </li>
                     {% endif %}
 
@@ -64,9 +99,7 @@
                             <li><h6 class="dropdown-header text-uppercase fw-bold text-primary">Catálogos</h6></li>
                             <li><a class="dropdown-item" href="{% url 'lista_categorias' %}"><i class="bi bi-tags me-2"></i>Categorías</a></li>
                             <li><a class="dropdown-item" href="{% url 'lista_proveedores' %}"><i class="bi bi-truck me-2"></i>Proveedores</a></li>
-                            
                             <li><hr class="dropdown-divider"></li>
-                            
                             <li><h6 class="dropdown-header text-uppercase fw-bold text-primary">Seguridad</h6></li>
                             <li><a class="dropdown-item" href="{% url 'gestion_usuarios' %}"><i class="bi bi-people-fill me-2"></i>Gestión de Usuarios</a></li>
                         </ul>
@@ -75,25 +108,62 @@
                 </ul>
 
                 <div class="d-flex align-items-center">
-    {% if user.is_authenticated %}
-        <div class="me-3 d-none d-lg-flex align-items-center text-white">
-            {% if user.avatar %}
-                <img src="{{ user.avatar.url }}" class="rounded-circle me-2 border border-2 border-primary" style="width: 35px; height: 35px; object-fit: cover;">
-            {% else %}
-                <i class="bi bi-person-circle fs-4 me-2"></i>
-            {% endif %}
-            
-            <div class="lh-1">
-                <span class="d-block fw-bold small">{{ user.username }}</span>
-                <span class="badge bg-primary" style="font-size: 0.65rem;">{{ user.get_rol_display }}</span>
-            </div>
-        </div>
-        <form action="{% url 'logout' %}" method="post" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-outline-danger btn-sm">Salir</button>
-        </form>
-    {% endif %}
-</div>
+                    {% if user.is_authenticated %}
+                        
+                        {% if user.rol != 'CLIENTE' %}
+                        <div class="dropdown me-3">
+                            <a href="#" class="text-white position-relative" id="dropdownNotif" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-bell fs-4"></i>
+                                {% if cantidad_criticos > 0 %}
+                                <span class="badge rounded-pill bg-danger badge-notification">
+                                    {{ cantidad_criticos }}
+                                </span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3" style="width: 280px;" aria-labelledby="dropdownNotif">
+                                <li><h6 class="dropdown-header border-bottom">Alertas de Stock</h6></li>
+                                {% if cantidad_criticos > 0 %}
+                                    <li><a class="dropdown-item small text-wrap py-3" href="{% url 'dashboard' %}">
+                                        <i class="bi bi-exclamation-triangle text-danger me-2"></i> 
+                                        Tienes <strong>{{ cantidad_criticos }}</strong> productos en stock crítico.
+                                    </a></li>
+                                {% else %}
+                                    <li><span class="dropdown-item small text-muted py-3 text-center">No hay alertas pendientes</span></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item small text-center fw-bold" href="{% url 'dashboard' %}">Ver detalles en Dashboard</a></li>
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if user.avatar %}
+                                    <img src="{{ user.avatar.url }}" class="rounded-circle me-2 border border-2 border-primary" style="width: 35px; height: 35px; object-fit: cover;">
+                                {% else %}
+                                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0D6EFD&color=fff" class="rounded-circle me-2 border border-2 border-white" style="width: 35px; height: 35px;">
+                                {% endif %}
+                                <div class="lh-1 d-none d-lg-block ms-1">
+                                    <span class="d-block fw-bold small text-white">{{ user.username }}</span>
+                                    <span class="text-muted" style="font-size: 0.65rem;">{{ user.get_rol_display }}</span>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3" aria-labelledby="dropdownUser">
+                                <li><a class="dropdown-item py-2" href="{% url 'mi_perfil' %}"><i class="bi bi-person-badge me-2 text-primary"></i>Mi Perfil</a></li>
+                                {% if user.is_staff or user.is_superuser %}
+                                <li><a class="dropdown-item py-2" href="{% url 'admin:index' %}"><i class="bi bi-gear-fill me-2 text-secondary"></i>Admin Django</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{% url 'logout' %}" method="post" class="px-3 py-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm w-100 rounded-pill">Salir</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </nav>
@@ -110,7 +180,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     {% if messages %}

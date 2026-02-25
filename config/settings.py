@@ -65,6 +65,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'inventario.context_processors.notificaciones_stock',
             ],
         },
     },
@@ -140,3 +141,12 @@ LOGOUT_REDIRECT_URL = 'login'     # Te manda al login al salir
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Configuración de Envío de Correos
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'alonzooviedo157@gmail.com' # Tu correo real
+EMAIL_HOST_PASSWORD = 'tu-password-de-aplicacion' # No es tu clave normal, es una generada por Google
+DEFAULT_FROM_EMAIL = 'Sistema Inventario Pro <alonzooviedo157@gmail.com>'

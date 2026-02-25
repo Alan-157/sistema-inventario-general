@@ -1,89 +1,160 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-2 mb-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="fw-bold text-dark"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Registrar Movimiento</h2>
-                <a href="{% url 'lista_movimientos' %}" class="btn btn-outline-secondary shadow-sm">
-                    <i class="bi bi-card-list"></i> Ver Historial
-                </a>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow border-0 rounded-4 animate__animated animate__fadeIn">
+            <div class="card-header {% if tipo_predefinido == 'ENTRADA' %}bg-success{% elif tipo_predefinido == 'SALIDA' %}bg-danger{% else %}bg-dark{% endif %} text-white p-4 rounded-top-4">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
+                        {% if tipo_predefinido == 'ENTRADA' %}
+                            <i class="bi bi-arrow-down-circle fs-3"></i>
+                        {% elif tipo_predefinido == 'SALIDA' %}
+                            <i class="bi bi-arrow-up-circle fs-3"></i>
+                        {% else %}
+                            <i class="bi bi-arrow-left-right fs-3"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold">
+                            {% if tipo_predefinido == 'ENTRADA' %}Registrar Entrada
+                            {% elif tipo_predefinido == 'SALIDA' %}Registrar Salida
+                            {% else %}Registrar Movimiento{% endif %}
+                        </h4>
+                        <p class="mb-0 small opacity-75 text-uppercase fw-semibold" style="letter-spacing: 1px;">
+                            Bodega Central Coquimbo
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <div class="card shadow border-0 rounded-4">
-                <div class="card-body p-4 p-md-5">
+            <div class="card-body p-4">
+                <form method="POST" id="form-movimiento" novalidate>
+                    {% csrf_token %}
                     
-                    <div class="mb-4">
-                        <h5 class="card-title fw-bold">Detalles del Ajuste de Stock</h5>
-                        <p class="text-muted small">Completa el formulario para registrar una entrada, salida o ajuste. Recuerda que este cambio actualizará automáticamente el stock actual del producto seleccionado.</p>
-                    </div>
-                    
-                    <form method="POST" novalidate>
-                        {% csrf_token %}
-                        
-                        <div class="row g-4 mb-4">
-                            <div class="col-md-8">
-                                <label for="{{ form.producto.id_for_label }}" class="form-label fw-bold text-secondary">Producto a modificar</label>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Producto</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-box-seam"></i></span>
                                 {{ form.producto }}
-                                <div class="form-text"><i class="bi bi-search me-1"></i>Busca y selecciona el producto.</div>
-                                {% if form.producto.errors %}
-                                    <div class="text-danger small mt-1">{{ form.producto.errors }}</div>
-                                {% endif %}
                             </div>
-                            
-                            <div class="col-md-4">
-                                <label for="{{ form.tipo.id_for_label }}" class="form-label fw-bold text-secondary">Tipo de Acción</label>
-                                {{ form.tipo }}
-                                {% if form.tipo.errors %}
-                                    <div class="text-danger small mt-1">{{ form.tipo.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row g-4 mb-4 align-items-start">
-                            <div class="col-md-4">
-                                <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-bold text-secondary">Cantidad Unidades</label>
-                                <div class="input-group shadow-sm">
-                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-123"></i></span>
-                                    {{ form.cantidad }}
-                                </div>
-                                {% if form.cantidad.errors %}
-                                    <div class="text-danger small mt-1">{{ form.cantidad.errors }}</div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="col-md-8 pt-md-4">
-                                <div class="alert alert-info py-3 mb-0 border-0 shadow-sm d-flex align-items-center rounded-3">
-                                    <i class="bi bi-info-circle-fill me-3 fs-4 text-info"></i>
-                                    <small class="text-dark"><strong>Importante:</strong> El sistema validará que las <span class="badge bg-danger">Salidas</span> no superen el stock disponible del producto.</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="{{ form.motivo.id_for_label }}" class="form-label fw-bold text-secondary">Motivo o justificación</label>
-                            {{ form.motivo }}
-                            <div class="form-text">Ejemplo: "Ingreso por factura #1234", "Merma por daño en bodega", "Ajuste de inventario manual".</div>
-                            {% if form.motivo.errors %}
-                                <div class="text-danger small mt-1">{{ form.motivo.errors }}</div>
+                            {% if form.producto.errors %}
+                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ form.producto.errors }}</div>
                             {% endif %}
                         </div>
 
-                        <hr class="text-muted my-4 opacity-25">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Tipo de Operación</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-list-check"></i></span>
+                                {{ form.tipo }}
+                            </div>
+                            {% if form.tipo.errors %}
+                                <div class="text-danger small mt-1">{{ form.tipo.errors }}</div>
+                            {% endif %}
+                        </div>
 
-                        <div class="d-flex justify-content-end gap-3">
-                            <a href="{% url 'lista_productos' %}" class="btn btn-light border px-4 shadow-sm">Cancelar</a>
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm fw-bold">
-                                <i class="bi bi-save me-2"></i> Guardar Movimiento
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Cantidad</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash"></i></span>
+                                {{ form.cantidad }}
+                            </div>
+                            {% if form.cantidad.errors %}
+                                <div class="text-danger small mt-1">{{ form.cantidad.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Motivo o Referencia</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 align-items-start pt-2">
+                                    <i class="bi bi-chat-left-text"></i>
+                                </span>
+                                {{ form.motivo }}
+                            </div>
+                            <div class="form-text mt-2 small">
+                                <i class="bi bi-info-circle me-1"></i> Indica la razón (ej: compra, merma, despacho).
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4 opacity-25">
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'lista_movimientos' %}" class="btn btn-light rounded-pill w-100 fw-bold border py-2">
+                                Cancelar
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <button type="submit" class="btn {% if tipo_predefinido == 'ENTRADA' %}btn-success{% elif tipo_predefinido == 'SALIDA' %}btn-danger{% else %}btn-dark{% endif %} rounded-pill w-100 fw-bold shadow-sm py-2">
+                                Confirmar
                             </button>
                         </div>
-                    </form>
-
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipo = document.querySelector('select[name="tipo"]');
+    const textareaMotivo = document.querySelector('textarea[name="motivo"]');
+    const urlParams = new URLSearchParams(window.location.search);
+    const tipoUrl = urlParams.get('tipo');
+
+    // Lógica de bloqueo inteligente
+    if (tipoUrl && selectTipo) {
+        selectTipo.value = tipoUrl;
+
+        // Deshabilitar opciones que no corresponden
+        Array.from(selectTipo.options).forEach(option => {
+            if (option.value !== tipoUrl) {
+                option.disabled = true;
+            }
+        });
+
+        // Estilo visual de "bloqueo" pero permitiendo envío de datos
+        selectTipo.style.backgroundColor = "#e9ecef";
+        selectTipo.style.cursor = "not-allowed";
+        
+        // Evitar que se abra la lista desplegable
+        selectTipo.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            this.blur();
+        });
+    }
+
+    // Aseguramos que el motivo siempre esté habilitado para escribir
+    if (textareaMotivo) {
+        textareaMotivo.style.pointerEvents = "auto";
+        textareaMotivo.style.opacity = "1";
+        textareaMotivo.readOnly = false;
+        
+        // Pequeño truco para asegurar el foco al hacer clic
+        textareaMotivo.addEventListener('click', function() {
+            this.focus();
+        });
+    }
+
+    // Validación básica antes del POST
+    const form = document.getElementById('form-movimiento');
+    form.addEventListener('submit', function(e) {
+        const cantidadInput = document.querySelector('input[name="cantidad"]');
+        if (cantidadInput && cantidadInput.value <= 0) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Cantidad Incorrecta',
+                text: 'Debes ingresar un número mayor a cero.',
+                confirmButtonColor: '#0d6efd'
+            });
+        }
+    });
+});
+</script>
 {% endblock %}

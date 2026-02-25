@@ -2,58 +2,79 @@
 
 {% block content %}
 <div class="row mb-4 align-items-center">
-    <div class="col-12">
+    <div class="col-md-8">
         <h2 class="fw-bold text-dark"><i class="bi bi-speedometer2 me-2 text-primary"></i>Panel de Control</h2>
         <p class="text-muted">Resumen general del estado del inventario y movimientos recientes.</p>
     </div>
+    <div class="col-md-4 text-end">
+    <div class="dropdown">
+        <button class="btn btn-primary shadow-sm rounded-pill px-4 dropdown-toggle" type="button" id="dropdownReportes" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-printer me-2"></i>Generar Reportes
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="dropdownReportes">
+            <li><a class="dropdown-item py-2" href="{% url 'reporte_inventario_pdf' %}"><i class="bi bi-box-seam me-2 text-danger"></i>Stock e Inventario</a></li>
+            <li><a class="dropdown-item py-2" href="{% url 'reporte_ventas_pdf' %}"><i class="bi bi-currency-dollar me-2 text-success"></i>Ventas y Recaudación</a></li>
+        </ul>
+    </div>
+</div>
 </div>
 
 <div class="row g-4 mb-4">
     
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card shadow-sm border-0 bg-primary text-white rounded-4 h-100">
             <div class="card-body d-flex align-items-center p-4">
                 <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
-                    <i class="bi bi-box-seam fs-1"></i>
+                    <i class="bi bi-box-seam fs-2"></i>
                 </div>
                 <div>
-                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Total Productos Activos</h6>
-                    <h2 class="mb-0 fw-bold display-6">{{ total_productos }}</h2>
+                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Productos</h6>
+                    <h2 class="mb-0 fw-bold">{{ total_productos }}</h2>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-info text-white rounded-4 h-100">
+            <div class="card-body d-flex align-items-center p-4">
+                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
+                    <i class="bi bi-people fs-2"></i>
+                </div>
+                <div>
+                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Clientes</h6>
+                    <h2 class="mb-0 fw-bold">{{ total_clientes }}</h2>
+                </div>
+                <a href="{% url 'gestion_usuarios' %}" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
     
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-warning text-dark rounded-4 h-100">
+            <div class="card-body d-flex align-items-center p-4">
+                <div class="bg-dark bg-opacity-10 rounded-circle p-3 me-3 shadow-sm">
+                    <i class="bi bi-cart-dash fs-2"></i>
+                </div>
+                <div>
+                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Pendientes</h6>
+                    <h2 class="mb-0 fw-bold text-center">{{ pedidos_pendientes }}</h2>
+                </div>
+                <a href="{% url 'gestion_pedidos' %}" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
         <div class="card shadow-sm border-0 bg-danger text-white rounded-4 h-100">
             <div class="card-body d-flex align-items-center p-4">
                 <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
-                    <i class="bi bi-exclamation-triangle fs-1"></i>
+                    <i class="bi bi-exclamation-triangle fs-2"></i>
                 </div>
                 <div>
-                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Productos en Nivel Crítico</h6>
-                    <h2 class="mb-0 fw-bold display-6">{{ cantidad_criticos }}</h2>
+                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Críticos</h6>
+                    <h2 class="mb-0 fw-bold">{{ cantidad_criticos }}</h2>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 bg-success text-white rounded-4 h-100 position-relative overflow-hidden">
-            <div class="card-body d-flex align-items-center justify-content-between p-4">
-                <div class="d-flex align-items-center z-1">
-                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
-                        <i class="bi bi-arrow-left-right fs-1"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Acción Rápida</h6>
-                        <h5 class="mb-0 fw-bold">Nuevo Movimiento</h5>
-                    </div>
-                </div>
-                <a href="{% url 'registrar_movimiento' %}" class="btn btn-light btn-sm text-success fw-bold stretched-link shadow-sm z-1 rounded-pill px-3 py-2">
-                    Ir ahora <i class="bi bi-arrow-right ms-1"></i>
-                </a>
-                <i class="bi bi-plus-circle-fill position-absolute text-white opacity-10" style="font-size: 10rem; right: -20px; top: -20px;"></i>
             </div>
         </div>
     </div>
@@ -61,7 +82,6 @@
 
 <div class="row g-4">
     <div class="col-lg-8">
-        
         <div class="card shadow border-0 rounded-4 mb-4">
             <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
                 <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Distribución por Categoría</h5>
@@ -71,7 +91,7 @@
             </div>
         </div>
 
-        <div class="card shadow border-0 rounded-4 mb-4 mb-lg-0">
+        <div class="card shadow border-0 rounded-4">
             <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center pt-4 pb-2 px-4">
                 <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-secondary me-2"></i>Últimos Movimientos</h5>
                 <a href="{% url 'lista_movimientos' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Ver todos</a>
@@ -83,7 +103,7 @@
                             <th class="ps-4 text-muted small text-uppercase">Fecha</th>
                             <th class="text-muted small text-uppercase">Producto</th>
                             <th class="text-muted small text-uppercase">Tipo</th>
-                            <th class="text-muted small text-uppercase">Cant.</th>
+                            <th class="text-muted small text-uppercase text-center">Cant.</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,10 +120,10 @@
                                     <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1"><i class="bi bi-arrow-repeat"></i> Ajuste</span>
                                 {% endif %}
                             </td>
-                            <td class="fw-bold fs-6">{{ mov.cantidad }}</td>
+                            <td class="text-center fw-bold fs-6">{{ mov.cantidad }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="4" class="text-center py-5 text-muted">No hay movimientos recientes registrados.</td></tr>
+                        <tr><td colspan="4" class="text-center py-5 text-muted">Sin movimientos recientes.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -115,31 +135,32 @@
         <div class="card shadow border-0 rounded-4 h-100 border-top border-danger border-4">
             <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
                 <h5 class="fw-bold text-danger mb-0"><i class="bi bi-exclamation-octagon-fill me-2"></i>Atención Requerida</h5>
-                <p class="text-muted small mt-1">Stock igual o inferior al mínimo configurado.</p>
+                <p class="text-muted small mt-1">Reponer estos productos pronto.</p>
             </div>
             <div class="card-body p-0 mt-2">
                 <ul class="list-group list-group-flush">
                     {% for prod in productos_criticos %}
                     <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 border-light">
                         <div>
-                            <a href="{% url 'detalle_producto' prod.pk %}" class="mb-0 fw-bold text-dark text-decoration-none">{{ prod.nombre }}</a>
-                            <small class="d-block text-muted">SKU: <code>{{ prod.sku }}</code></small>
+                            <div class="mb-0 fw-bold text-dark">{{ prod.nombre }}</div>
+                            <small class="text-muted">SKU: {{ prod.sku }}</small>
                         </div>
                         <div class="text-end">
-                            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm fs-6">{{ prod.stock_actual }} un.</span>
-                            <small class="d-block text-muted mt-1 fw-bold" style="font-size: 0.75rem;">Mínimo: {{ prod.stock_minimo }}</small>
+                            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm fs-6">{{ prod.stock_actual }}</span>
                         </div>
                     </li>
                     {% empty %}
                     <li class="list-group-item text-center py-5 border-0">
-                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex p-4 mb-3 shadow-sm">
-                            <i class="bi bi-check-lg" style="font-size: 3rem;"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark">Todo en orden</h5>
-                        <p class="text-muted small mb-0">Ningún producto está en nivel crítico de stock.</p>
+                        <i class="bi bi-check-circle text-success display-4 d-block mb-2"></i>
+                        <h6 class="fw-bold text-dark">Stock al día</h6>
                     </li>
                     {% endfor %}
                 </ul>
+            </div>
+            <div class="card-footer bg-white border-0 text-center pb-4">
+                <a href="{% url 'registrar_movimiento' %}" class="btn btn-outline-success btn-sm rounded-pill px-4 fw-bold">
+                    <i class="bi bi-plus-lg"></i> Registrar Entrada
+                </a>
             </div>
         </div>
     </div>
@@ -147,53 +168,28 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Extraemos los datos enviados desde Django (views.py)
-        const labels = [
-            {% for item in datos_grafico %}
-                "{{ item.categoria__nombre }}"{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        ];
-        
-        const data = [
-            {% for item in datos_grafico %}
-                {{ item.total }}{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        ];
-
+        const labels = [{% for item in datos_grafico %}"{{ item.categoria__nombre }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const data = [{% for item in datos_grafico %}{{ item.total }}{% if not forloop.last %}, {% endif %}{% endfor %}];
         const ctx = document.getElementById('graficoCategorias').getContext('2d');
         
-        // Paleta de colores vibrantes para el gráfico
-        const backgroundColors = [
-            'rgba(13, 110, 253, 0.85)', // Primary
-            'rgba(25, 135, 84, 0.85)',  // Success
-            'rgba(255, 193, 7, 0.85)',  // Warning
-            'rgba(220, 53, 69, 0.85)',  // Danger
-            'rgba(111, 66, 193, 0.85)', // Purple
-            'rgba(23, 162, 184, 0.85)'  // Info
-        ];
-
         new Chart(ctx, {
-            type: 'bar', // Gráfico de barras
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Cantidad de Productos',
+                    label: 'Productos',
                     data: data,
-                    backgroundColor: backgroundColors,
-                    borderWidth: 0,
-                    borderRadius: 8 // Bordes redondeados súper estéticos
+                    backgroundColor: 'rgba(13, 110, 253, 0.85)',
+                    borderRadius: 8
                 }]
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: { display: false } // Ocultamos la leyenda
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 } // Para que no muestre decimales en los productos
-                    }
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { beginAtZero: true, ticks: { precision: 0 } },
+                    x: { grid: { display: false } }
                 }
             }
         });
