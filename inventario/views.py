@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
+import json
 from django.core.paginator import Paginator # Para asegurar que se descuente todo o nada
 from django.db import models, transaction
 from .models import Producto, HistorialMovimiento, Categoria, Proveedor, Pedido, DetallePedido
@@ -30,6 +31,10 @@ def es_admin_o_super(user):
 
 # --- VISTAS DEL SISTEMA ---
 
+import json
+from django.db.models import Count, F
+# ... otros imports ...
+
 @login_required
 def dashboard(request):
     """Dashboard Dinámico: Cliente vs Operativo"""
@@ -41,9 +46,27 @@ def dashboard(request):
             'mis_ultimos_pedidos': Pedido.objects.filter(cliente=request.user).order_by('-fecha_pedido')[:3]
         }
         return render(request, 'inventario/dashboard_cliente.html', context)
+    
+    if request.user.rol == 'BODEGUERO':
+        productos_criticos = Producto.objects.filter(is_active=True, stock_actual__lte=F('stock_minimo'))
+        context = {
+            'total_productos': Producto.objects.filter(is_active=True).count(),
+            'cantidad_criticos': productos_criticos.count(),
+            'ultimos_movimientos': HistorialMovimiento.objects.all().order_by('-created_at')[:10],
+            'productos_criticos': productos_criticos[:5],
+        }
+        return render(request, 'inventario/dashboard_bodeguero.html', context)
 
-    # Dashboard Admin/Bodeguero
+    # DASHBOARD ADMIN / SUPERUSUARIO
     productos_criticos = Producto.objects.filter(is_active=True, stock_actual__lte=F('stock_minimo'))
+    
+    # Obtenemos los datos para el gráfico
+    datos_grafico = Categoria.objects.annotate(total=Count('producto')).filter(total__gt=0).values('nombre', 'total')
+    
+    # Preparamos los datos serializados para evitar errores en JS
+    labels_js = [item['nombre'] for item in datos_grafico]
+    valores_js = [item['total'] for item in datos_grafico]
+
     context = {
         'total_productos': Producto.objects.filter(is_active=True).count(),
         'total_clientes': Usuario.objects.filter(rol='CLIENTE', is_active=True).count(),
@@ -51,7 +74,9 @@ def dashboard(request):
         'cantidad_criticos': productos_criticos.count(),
         'productos_criticos': productos_criticos[:5],
         'ultimos_movimientos': HistorialMovimiento.objects.select_related('producto', 'usuario').order_by('-created_at')[:5],
-        'datos_grafico': Producto.objects.filter(is_active=True).values('categoria__nombre').annotate(total=Count('id'))
+        # Enviamos los datos como JSON
+        'labels_js': json.dumps(labels_js),
+        'valores_js': json.dumps(valores_js),
     }
     return render(request, 'inventario/dashboard.html', context)
 
@@ -150,14 +175,63 @@ def editar_producto(request, pk):
     return render(request, 'inventario/crear_producto.html', {'form': form, 'editando': True})
 
 @login_required
-@require_POST
-def desactivar_producto(request, pk):
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        producto = get_object_or_404(Producto, pk=pk)
-        producto.is_active = False # Soft Delete
+def eliminar_producto(request, pk):
+    if request.user.rol not in ['ADMIN', 'SUPERUSUARIO'] and not request.user.is_superuser:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'ok': False, 'message': 'No tienes permisos'}, status=403)
+        raise PermissionDenied
+    
+    producto = get_object_or_404(Producto, pk=pk)
+    
+    if request.method == 'POST':
+        producto.is_active = False 
         producto.save()
-        return JsonResponse({'ok': True, 'message': f'El producto {producto.nombre} ha sido desactivado.'})
-    return JsonResponse({'ok': False}, status=400)
+        
+        # Registrar en Kardex
+        HistorialMovimiento.objects.create(
+            producto=producto,
+            usuario=request.user,
+            tipo='SALIDA',
+            cantidad=producto.stock_actual,
+            motivo="BAJA LÓGICA: Producto desactivado"
+        )
+        
+        # Si la petición es AJAX (SweetAlert)
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'ok': True, 'message': f'El producto {producto.nombre} fue desactivado.'})
+        
+        messages.warning(request, f"El producto {producto.nombre} ha sido desactivado.")
+        return redirect('lista_productos')
+    
+    return redirect('lista_productos')
+
+@login_required
+def productos_eliminados(request):
+    if request.user.rol not in ['ADMIN', 'SUPERUSUARIO'] and not request.user.is_superuser:
+        raise PermissionDenied
+
+    # Filtramos solo los productos desactivados
+    query = request.GET.get('q', '')
+    productos = Producto.objects.filter(is_active=False)
+
+    if query:
+        productos = productos.filter(nombre__icontains=query) | productos.filter(sku__icontains=query)
+
+    # Ordenar: por defecto los últimos desactivados primero
+    productos = productos.order_by('-updated_at') # Asegúrate de tener auto_now=True en tu campo updated_at
+
+    return render(request, 'inventario/productos_eliminados.html', {
+        'productos': productos,
+        'query': query
+    })
+
+@login_required
+def reactivar_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    producto.is_active = True
+    producto.save()
+    messages.success(request, f"El producto {producto.nombre} ha sido reactivado.")
+    return redirect('productos_eliminados')
 
 @login_required
 def registrar_movimiento(request):
@@ -195,6 +269,118 @@ def registrar_movimiento(request):
         'form': form,
         'tipo_predefinido': tipo_predefinido
     })
+    
+    
+@login_required
+@user_passes_test(es_admin_o_super)
+def editar_movimiento(request, pk):
+    movimiento = get_object_or_404(HistorialMovimiento, pk=pk)
+    producto = movimiento.producto
+    cantidad_anterior = movimiento.cantidad
+    tipo_anterior = movimiento.tipo
+
+    if request.method == 'POST':
+        form = MovimientoForm(request.POST, instance=movimiento)
+        if form.is_valid():
+            with transaction.atomic():
+                # 1. Revertir el stock anterior
+                if tipo_anterior == 'ENTRADA':
+                    producto.stock_actual -= cantidad_anterior
+                else:
+                    producto.stock_actual += cantidad_anterior
+                
+                # 2. Aplicar el nuevo movimiento
+                nuevo_movimiento = form.save(commit=False)
+                if nuevo_movimiento.tipo == 'ENTRADA':
+                    producto.stock_actual += nuevo_movimiento.cantidad
+                else:
+                    producto.stock_actual -= nuevo_movimiento.cantidad
+                
+                producto.save()
+                nuevo_movimiento.save()
+                messages.success(request, "Movimiento actualizado y stock reajustado.")
+                return redirect('lista_movimientos')
+    else:
+        form = MovimientoForm(instance=movimiento)
+    return render(request, 'inventario/registrar_movimiento.html', {'form': form, 'editando': True})
+
+@login_required
+def eliminar_movimiento(request, pk):
+    # Solo ADMIN o SUPERUSUARIO pueden anular movimientos del Kardex
+    if request.user.rol not in ['ADMIN', 'SUPERUSUARIO'] and not request.user.is_superuser:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'ok': False, 'message': 'No tienes permisos'}, status=403)
+        raise PermissionDenied
+    
+    movimiento = get_object_or_404(HistorialMovimiento, pk=pk)
+    
+    if request.method == 'POST':
+        producto = movimiento.producto
+        
+        # 1. REVERSIÓN DEL STOCK (Paso crítico)
+        if movimiento.tipo == 'ENTRADA':
+            # Si anulamos una entrada, restamos el stock que entró
+            producto.stock_actual -= movimiento.cantidad
+        elif movimiento.tipo == 'SALIDA':
+            # Si anulamos una salida, devolvemos el stock que salió
+            producto.stock_actual += movimiento.cantidad
+        
+        producto.save()
+
+        # 2. DESACTIVACIÓN (Soft Delete)
+        # Si tienes el campo is_active en HistorialMovimiento:
+        movimiento.is_active = False 
+        # Si no lo tienes, podemos cambiar el motivo para indicar la anulación
+        movimiento.motivo = f"ANULADO por {request.user.username} - " + (movimiento.motivo or "")
+        movimiento.save()
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'ok': True, 
+                'message': f'Movimiento anulado. El stock de {producto.nombre} ha sido corregido.'
+            })
+        
+        messages.success(request, "Movimiento anulado correctamente.")
+        return redirect('lista_movimientos')
+    
+    return redirect('lista_movimientos')
+
+@login_required
+def movimientos_anulados(request):
+    if request.user.rol not in ['ADMIN', 'SUPERUSUARIO'] and not request.user.is_superuser:
+        raise PermissionDenied
+
+    # Filtramos solo los movimientos desactivados
+    movimientos = HistorialMovimiento.objects.filter(is_active=False).select_related('producto', 'usuario').order_by('-updated_at')
+
+    return render(request, 'inventario/movimientos_anulados.html', {
+        'movimientos': movimientos
+    })
+
+@login_required
+def restaurar_movimiento(request, pk):
+    if request.user.rol not in ['ADMIN', 'SUPERUSUARIO'] and not request.user.is_superuser:
+        raise PermissionDenied
+
+    movimiento = get_object_or_404(HistorialMovimiento, pk=pk)
+    producto = movimiento.producto
+
+    if request.method == 'POST':
+        # Al restaurar, debemos volver a afectar el stock
+        if movimiento.tipo == 'ENTRADA':
+            producto.stock_actual += movimiento.cantidad
+        else:
+            producto.stock_actual -= movimiento.cantidad
+        
+        producto.save()
+        movimiento.is_active = True
+        # Limpiamos el mensaje de "ANULADO" del motivo si lo pusiste
+        movimiento.save()
+
+        messages.success(request, f"Movimiento de {producto.nombre} restaurado. Stock actualizado.")
+        return redirect('movimientos_anulados')
+    
+    return redirect('movimientos_anulados')
 
 @login_required
 def exportar_excel(request):
@@ -344,8 +530,24 @@ def catalogo_cliente(request):
 
 @login_required
 def detalle_producto(request, pk):
-    """Muestra la ficha técnica de un producto"""
+    """Muestra la ficha técnica de un producto (Normal o AJAX)"""
     producto = get_object_or_404(Producto, pk=pk, is_active=True)
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'nombre': producto.nombre,
+            'sku': producto.sku,
+            'categoria': producto.categoria.nombre,
+            'proveedor': producto.proveedor.nombre if producto.proveedor else "N/A",
+            'stock_actual': producto.stock_actual,
+            'stock_minimo': producto.stock_minimo,
+            'precio_costo': producto.precio_costo,
+            'precio_venta': producto.precio_venta,
+            'imagen_url': producto.imagen.url if producto.imagen else None,
+            'created_at': producto.created_at.strftime("%d/%m/%Y"),
+            'updated_at': producto.updated_at.strftime("%d/%m/%Y %H:%M"),
+        })
+    
     return render(request, 'inventario/detalle_producto.html', {'producto': producto})
 
 @login_required
@@ -361,6 +563,7 @@ def lista_movimientos(request):
     hasta = request.GET.get('hasta', '')
 
     movimientos = HistorialMovimiento.objects.select_related('producto', 'usuario').order_by('-created_at')
+    movimientos_list = HistorialMovimiento.objects.filter(is_active=True).select_related('producto', 'usuario').order_by('-created_at')
     
     # --- FILTROS ---
     if query:
@@ -405,6 +608,26 @@ def lista_movimientos(request):
     }
     return render(request, 'inventario/lista_movimientos.html', context)
 
+from django.http import JsonResponse
+
+@login_required
+def detalle_movimiento(request, pk):
+    # Buscamos el movimiento específico
+    movimiento = get_object_or_404(HistorialMovimiento, pk=pk)
+    
+    # Preparamos los datos
+    data = {
+        'producto': movimiento.producto.nombre,
+        'tipo': movimiento.get_tipo_display(),
+        'cantidad': movimiento.cantidad,
+        'usuario': movimiento.usuario.username,
+        'fecha': movimiento.created_at.strftime("%d/%m/%Y %H:%M"),
+        'motivo': movimiento.motivo or "Sin motivo registrado"
+    }
+    
+    # Enviamos los datos de vuelta al navegador
+    return JsonResponse(data)
+
 @login_required
 @user_passes_test(es_admin_o_super)
 def lista_categorias(request):
@@ -443,6 +666,21 @@ def crear_categoria(request):
     else:
         form = CategoriaForm()
     return render(request, 'inventario/crear_categoria.html', {'form': form, 'editando': False})
+
+@login_required
+def detalle_categoria(request, pk):
+    # Buscamos la categoría o devolvemos 404 si no existe
+    categoria = get_object_or_404(Categoria, pk=pk)
+    
+    # Contamos cuántos productos activos tiene esta categoría
+    cantidad_productos = categoria.producto_set.filter(is_active=True).count()
+    
+    # Devolvemos la información en formato JSON
+    return JsonResponse({
+        'nombre': categoria.nombre,
+        'descripcion': categoria.descripcion or "Sin descripción registrada.",
+        'cantidad_productos': cantidad_productos,
+    })
 
 @login_required
 @user_passes_test(es_admin_o_super)
@@ -505,6 +743,22 @@ def lista_proveedores(request):
     return render(request, 'inventario/lista_proveedores.html', {
         'page_obj': page_obj, 
         'query': query
+    })
+    
+@login_required
+def detalle_proveedor(request, pk):
+    proveedor = get_object_or_404(Proveedor, pk=pk)
+    
+    # Usamos getattr o verificamos el nombre real del campo en tu models.py
+    # Si en tu modelo el campo es 'contacto', cambia 'nombre_contacto' por 'contacto'
+    return JsonResponse({
+        'nombre': proveedor.nombre,
+        # Cambié 'nombre_contacto' por 'contacto' que es lo más probable que tengas
+        'contacto': getattr(proveedor, 'contacto', "No registrado"), 
+        'telefono': proveedor.telefono or "No registrado",
+        'email': proveedor.email or "No registrado",
+        'direccion': proveedor.direccion or "No registrada",
+        'productos_suministrados': proveedor.producto_set.filter(is_active=True).count(),
     })
 
 @login_required
@@ -589,13 +843,38 @@ def mis_pedidos(request):
 # Vista para el Administrador
 @login_required
 def gestion_pedidos(request):
-    # Solo el Admin o Superusuario entra aquí
     if request.user.rol not in ['ADMIN', 'SUPERUSUARIO'] and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso para ver esta sección.")
-        return redirect('dashboard')
+        raise PermissionDenied
     
-    pedidos = Pedido.objects.all().order_by('-fecha_pedido')
-    return render(request, 'inventario/gestion_pedidos.html', {'pedidos': pedidos})
+    # Obtenemos los filtros
+    estado_filtro = request.GET.get('estado', '')
+    cliente_filtro = request.GET.get('cliente', '')
+
+    # Consulta base con select_related para optimizar (evita muchas consultas a la BD)
+    pedidos = Pedido.objects.all().select_related('cliente').order_by('-fecha_pedido')
+
+    # Aplicamos filtros si existen
+    if estado_filtro:
+        pedidos = pedidos.filter(estado=estado_filtro)
+    if cliente_filtro:
+        pedidos = pedidos.filter(cliente__username__icontains=cliente_filtro)
+
+    # Paginación (opcional pero recomendada)
+    paginator = Paginator(pedidos, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'inventario/gestion_pedidos.html', {
+        'pedidos': page_obj,
+        'estado_actual': estado_filtro,
+        'cliente_query': cliente_filtro
+    })
+    
+@login_required
+def detalle_pedido(request, pk):
+    pedido = get_object_or_404(Pedido, pk=pk)
+    # Por ahora solo renderizamos, puedes crear el template 'detalle_pedido.html' después
+    return render(request, 'inventario/detalle_pedido.html', {'pedido': pedido})
 
 # Función para cambiar el estado (Aprobar/Rechazar)
 @login_required
@@ -767,3 +1046,38 @@ def reporte_ventas_pdf(request):
     HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
     
     return response
+
+@login_required
+def eliminar_producto_logico(request, pk):
+    if request.user.rol not in ['ADMIN', 'SUPERUSUARIO']:
+        raise PermissionDenied
+    
+    producto = get_object_or_404(Producto, pk=pk)
+    producto.is_active = False # Cambiamos el estado en lugar de borrar
+    producto.save()
+    
+    # Registramos en el Kardex que se dio de baja
+    HistorialMovimiento.objects.create(
+        producto=producto,
+        usuario=request.user,
+        tipo='SALIDA',
+        cantidad=producto.stock_actual,
+        motivo="BAJA LÓGICA: Producto desactivado del sistema"
+    )
+    
+    messages.warning(request, f"El producto {producto.nombre} ha sido desactivado.")
+    return redirect('gestion_inventario')
+
+@login_required
+def gestion_inventario(request):
+    query = request.GET.get('q', '')
+    # Solo mostramos lo que NO está en la papelera
+    productos = Producto.objects.filter(is_active=True).select_related('categoria')
+    
+    if query:
+        productos = productos.filter(nombre__icontains=query) | productos.filter(sku__icontains=query)
+    
+    return render(request, 'inventario/gestion_inventario.html', {
+        'productos': productos.order_by('nombre'),
+        'query': query
+    })

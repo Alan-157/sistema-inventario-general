@@ -45,6 +45,9 @@
                         </span>
                     </td>
                     <td class="text-center">
+                        <button class="btn btn-sm btn-outline-info shadow-sm" onclick="verDetalleCategoria('{{ c.pk }}')" title="Ver Detalle">
+                            <i class="bi bi-eye"></i>
+                        </button>
                         <a href="{% url 'editar_categoria' c.pk %}" class="btn btn-sm btn-outline-primary rounded-circle" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
@@ -73,16 +76,11 @@
                     <li class="page-item">
                         <a class="page-link shadow-sm" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a>
                     </li>
-                {% else %}
-                    <li class="page-item disabled"><span class="page-link">Anterior</span></li>
                 {% endif %}
-
                 {% if page_obj.has_next %}
                     <li class="page-item">
                         <a class="page-link shadow-sm" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a>
                     </li>
-                {% else %}
-                    <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
                 {% endif %}
             </ul>
         </nav>
@@ -90,34 +88,93 @@
     {% endif %}
 </div>
 
+<div class="modal fade" id="modalDetalleCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header bg-light py-3 border-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-tags me-2 text-primary"></i>Detalle de Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-start">
+                <div class="mb-3">
+                    <label class="text-muted small fw-bold text-uppercase d-block">Nombre de la Categoría</label>
+                    <p id="cat-nombre" class="fs-5 fw-bold text-dark mb-0"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small fw-bold text-uppercase d-block">Descripción</label>
+                    <p id="cat-descripcion" class="text-secondary"></p>
+                </div>
+                <div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-primary fw-bold small">Productos vinculados:</span>
+                        <span id="cat-cantidad" class="badge bg-primary rounded-pill fs-6">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// Script para eliminar con SweetAlert2
-document.querySelectorAll('.btn-eliminar-cat').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const url = this.dataset.url;
-        Swal.fire({
-            title: '¿Eliminar categoría?',
-            text: "Se borrará si no tiene productos asociados.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((res) => {
-            if (res.isConfirmed) {
-                fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if(data.ok) location.reload();
-                    else Swal.fire('Error', data.message, 'error');
-                });
-            }
+function verDetalleCategoria(id) {
+    const modalElement = document.getElementById('modalDetalleCategoria');
+    const modal = new bootstrap.Modal(modalElement);
+    
+    document.getElementById('cat-nombre').innerText = "Cargando...";
+    document.getElementById('cat-descripcion').innerText = "";
+    document.getElementById('cat-cantidad').innerText = "-";
+
+    fetch(`/inventario/categoria/detalle/${id}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Error al obtener datos');
+        return response.json();
+    })
+    .then(data => {
+        document.getElementById('cat-nombre').innerText = data.nombre;
+        document.getElementById('cat-descripcion').innerText = data.descripcion;
+        document.getElementById('cat-cantidad').innerText = data.cantidad_productos;
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'No se pudo cargar la información', 'error');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const botonesEliminar = document.querySelectorAll('.btn-eliminar-cat');
+    botonesEliminar.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.url;
+            Swal.fire({
+                title: '¿Desactivar categoría?',
+                text: "La categoría se ocultará del sistema.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Sí, desactivar',
+                cancelButtonText: 'Cancelar'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.ok) {
+                            Swal.fire('¡Hecho!', data.message, 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    });
+                }
+            });
         });
     });
 });

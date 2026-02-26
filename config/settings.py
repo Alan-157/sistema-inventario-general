@@ -136,6 +136,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Especificamos que usaremos nuestro modelo personalizado
 AUTH_USER_MODEL = 'usuarios.Usuario'
 
+LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard' # Te manda al dashboard al entrar
 LOGOUT_REDIRECT_URL = 'login'     # Te manda al login al salir
 
@@ -148,5 +149,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'alonzooviedo157@gmail.com' # Tu correo real
-EMAIL_HOST_PASSWORD = 'tu-password-de-aplicacion' # No es tu clave normal, es una generada por Google
-DEFAULT_FROM_EMAIL = 'Sistema Inventario Pro <alonzooviedo157@gmail.com>'
+EMAIL_HOST_PASSWORD = 'Alastor10?' # La clave de 16 letras de Google
+DEFAULT_FROM_EMAIL = 'Secreto Heladería <tu_correo@gmail.com>'

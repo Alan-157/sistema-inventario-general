@@ -4,39 +4,56 @@
 <div class="row mb-4 align-items-center">
     <div class="col-md-6">
         <h2 class="fw-bold text-dark"><i class="bi bi-journal-text me-2 text-primary"></i>Kardex de Inventario</h2>
-        <p class="text-muted">Historial detallado de entradas, salidas y pedidos aprobados.</p>
+        <p class="text-muted">Historial detallado de movimientos y auditoría de stock.</p>
     </div>
-    <div class="col-md-6">
-        <div class="input-group shadow-sm rounded-pill overflow-hidden">
-            <span class="input-group-text bg-white border-0 ps-3"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="buscador-kardex" class="form-control border-0 py-2" placeholder="Buscar por producto, SKU o motivo..." value="{{ query }}">
+    <div class="col-md-6 text-end">
+        <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+            <a href="{% url 'exportar_excel' %}?tipo={{ tipo }}&desde={{ desde }}&hasta={{ hasta }}" class="btn btn-outline-success border-light bg-white">
+                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </a>
+            <a href="{% url 'exportar_pdf' %}?tipo={{ tipo }}&desde={{ desde }}&hasta={{ hasta }}" class="btn btn-outline-danger border-light bg-white">
+                <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+            </a>
+            <a href="{% url 'movimientos_anulados' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-archive me-1"></i> Ver Anulados
+            </a>
         </div>
     </div>
 </div>
 
 <div class="card border-0 shadow-sm rounded-4 mb-4">
     <div class="card-body">
-        <form method="GET" class="row g-3 align-items-end">
+        <form method="GET" class="row g-3 align-items-end" id="form-filtros-kardex">
             <div class="col-md-3">
-                <label class="form-label small fw-bold">Tipo Movimiento</label>
-                <select name="tipo" class="form-select rounded-pill shadow-none border-light">
+                <label class="form-label small fw-bold text-uppercase text-muted">Buscador en Tiempo Real</label>
+                <div class="input-group rounded-pill border overflow-hidden">
+                    <span class="input-group-text bg-white border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" id="buscador-kardex" class="form-control border-0 shadow-none" placeholder="Producto, SKU o motivo..." value="{{ query }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-uppercase text-muted">Tipo</label>
+                <select name="tipo" class="form-select rounded-pill border-light filtro-auto">
                     <option value="">Todos</option>
                     <option value="ENTRADA" {% if tipo == 'ENTRADA' %}selected{% endif %}>Entrada</option>
                     <option value="SALIDA" {% if tipo == 'SALIDA' %}selected{% endif %}>Salida</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-bold">Desde</label>
-                <input type="date" name="desde" value="{{ desde }}" class="form-control rounded-pill shadow-none border-light">
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-uppercase text-muted">Desde</label>
+                <input type="date" name="desde" value="{{ desde }}" class="form-control rounded-pill border-light filtro-auto">
             </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-bold">Hasta</label>
-                <input type="date" name="hasta" value="{{ hasta }}" class="form-control rounded-pill shadow-none border-light">
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-uppercase text-muted">Hasta</label>
+                <input type="date" name="hasta" value="{{ hasta }}" class="form-control rounded-pill border-light filtro-auto">
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">
-                    <i class="bi bi-filter me-1"></i> Filtrar Fechas
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm">
+                    <i class="bi bi-funnel"></i> Aplicar
                 </button>
+                <a href="{% url 'lista_movimientos' %}" class="btn btn-light w-100 rounded-pill fw-bold border">
+                    <i class="bi bi-arrow-clockwise"></i> Limpiar
+                </a>
             </div>
         </form>
     </div>
@@ -45,15 +62,14 @@
 <div class="card shadow border-0 rounded-4 overflow-hidden">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="tabla-movimientos">
+            <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th class="ps-4 text-muted small text-uppercase">Fecha y Hora</th>
                         <th class="text-muted small text-uppercase">Producto</th>
                         <th class="text-muted small text-uppercase">Tipo</th>
                         <th class="text-muted small text-uppercase text-center">Cant.</th>
-                        <th class="text-muted small text-uppercase">Responsable</th>
-                        <th class="text-muted small text-uppercase">Motivo</th>
+                        <th class="text-muted small text-uppercase text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="body-kardex">
@@ -65,16 +81,31 @@
                             <small class="text-muted">SKU: {{ mov.producto.sku }}</small>
                         </td>
                         <td>
-                            <span class="badge {% if mov.tipo == 'ENTRADA' %}bg-success{% else %}bg-danger{% endif %} bg-opacity-10 {% if mov.tipo == 'ENTRADA' %}text-success{% else %}text-danger{% endif %} border rounded-pill px-3">
+                            <span class="badge {% if mov.tipo == 'ENTRADA' %}bg-success text-success{% else %}bg-danger text-danger{% endif %} bg-opacity-10 border rounded-pill px-3">
                                 {{ mov.get_tipo_display }}
                             </span>
                         </td>
                         <td class="text-center fw-bold fs-5">{{ mov.cantidad }}</td>
-                        <td class="small">{{ mov.usuario.username }}</td>
-                        <td class="text-muted small fst-italic">{{ mov.motivo|default:"Sin motivo" }}</td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-light border rounded-circle me-1" onclick="verDetalleMovimiento('{{ mov.pk }}')" title="Ver Detalle">
+                                    <i class="bi bi-eye text-info"></i>
+                                </button>
+                                
+                                {% if user.rol == 'ADMIN' or user.rol == 'SUPERUSUARIO' or user.is_superuser %}
+                                <button type="button" 
+                                        class="btn btn-sm btn-light border rounded-circle btn-anular-mov" 
+                                        data-url="{% url 'eliminar_movimiento' mov.pk %}" 
+                                        data-nombre="{{ mov.producto.nombre }}"
+                                        title="Anular Movimiento">
+                                    <i class="bi bi-trash text-danger"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron movimientos registrados.</td></tr>
+                    <tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron movimientos registrados.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -82,46 +113,128 @@
     </div>
 </div>
 
-<div id="paginacion-kardex" class="mt-4">
-    {% include 'includes/paginacion.html' %} </div>
+<div id="paginacion-kardex" class="mt-4 text-center">
+    {% if page_obj.has_other_pages %}
+        {% include 'includes/paginacion.html' %} 
+    {% endif %}
+</div>
+
+<div class="modal fade" id="modalDetalleMov" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header bg-light border-0 py-3 px-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Información del Registro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div id="modal-body-mov" class="modal-body p-4"></div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    // Lógica AJAX para el buscador
-    const inputBuscador = document.getElementById('buscador-kardex');
-    const tableBody = id="body-kardex";
-    
-    inputBuscador.addEventListener('keyup', function() {
-        let q = this.value;
-        fetch(`?q=${q}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" }
+    // 1. Función para anular movimientos (Soft Delete)
+    function vincularAnulacion() {
+        document.querySelectorAll('.btn-anular-mov').forEach(boton => {
+            boton.onclick = function() {
+                const url = this.getAttribute('data-url');
+                const nombre = this.getAttribute('data-nombre');
+
+                Swal.fire({
+                    title: '¿Anular movimiento?',
+                    text: `Se revertirá el stock de "${nombre}". El registro se ocultará pero quedará en la base de datos por seguridad.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    confirmButtonText: 'Sí, anular',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.ok) {
+                                Swal.fire('¡Anulado!', data.message, 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error', data.message, 'error');
+                            }
+                        });
+                    }
+                });
+            };
+        });
+    }
+
+    // 2. Lógica del Buscador y Filtros AJAX
+    document.addEventListener('DOMContentLoaded', function() {
+        vincularAnulacion();
+
+        const inputBuscador = document.getElementById('buscador-kardex');
+        const tableBody = document.getElementById('body-kardex');
+        const formFiltros = document.getElementById('form-filtros-kardex');
+
+        const actualizarKardex = () => {
+            const formData = new FormData(formFiltros);
+            const params = new URLSearchParams(formData).toString();
+            
+            fetch(`?${params}`, {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+            .then(response => response.json())
+            .then(data => {
+                let html = "";
+                data.movimientos.forEach(mov => {
+                    let badgeClass = mov.tipo === 'ENTRADA' ? 'bg-success text-success' : 'bg-danger text-danger';
+                    html += `
+                        <tr>
+                            <td class="ps-4 small text-muted fw-semibold">${mov.fecha}</td>
+                            <td><div class="fw-bold text-dark">${mov.producto_nombre}</div><small class="text-muted">SKU: ${mov.producto_sku}</small></td>
+                            <td><span class="badge ${badgeClass} bg-opacity-10 border rounded-pill px-3">${mov.tipo}</span></td>
+                            <td class="text-center fw-bold fs-5">${mov.cantidad}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-light border rounded-circle me-1" onclick="verDetalleMovimiento('${mov.id}')"><i class="bi bi-eye text-info"></i></button>
+                                <button type="button" class="btn btn-sm btn-light border rounded-circle btn-anular-mov" data-url="/inventario/movimientos/eliminar/${mov.id}/" data-nombre="${mov.producto_nombre}"><i class="bi bi-trash text-danger"></i></button>
+                            </td>
+                        </tr>`;
+                });
+                tableBody.innerHTML = html || '<tr><td colspan="5" class="text-center py-5 text-muted">Sin resultados.</td></tr>';
+                vincularAnulacion();
+            });
+        };
+
+        inputBuscador.addEventListener('keyup', actualizarKardex);
+        document.querySelectorAll('.filtro-auto').forEach(el => el.addEventListener('change', actualizarKardex));
+    });
+
+    // 3. Detalle AJAX
+    function verDetalleMovimiento(id) {
+        const body = document.getElementById('modal-body-mov');
+        body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+        const modal = new bootstrap.Modal(document.getElementById('modalDetalleMov'));
+        modal.show();
+
+        fetch(`/inventario/movimiento/detalle/${id}/`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
         .then(data => {
-            let html = "";
-            data.movimientos.forEach(mov => {
-                let badgeClass = mov.tipo === 'ENTRADA' ? 'bg-success text-success' : 'bg-danger text-danger';
-                html += `
-                    <tr>
-                        <td class="ps-4 small text-muted fw-semibold">${mov.fecha}</td>
-                        <td>
-                            <div class="fw-bold text-dark">${mov.producto_nombre}</div>
-                            <small class="text-muted">SKU: ${mov.producto_sku}</small>
-                        </td>
-                        <td>
-                            <span class="badge ${badgeClass} bg-opacity-10 border rounded-pill px-3">
-                                ${mov.tipo}
-                            </span>
-                        </td>
-                        <td class="text-center fw-bold fs-5">${mov.cantidad}</td>
-                        <td class="small">${mov.usuario}</td>
-                        <td class="text-muted small fst-italic">${mov.motivo}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('body-kardex').innerHTML = html;
-            // Ocultar paginación al buscar
-            document.getElementById('paginacion-kardex').style.display = q === "" ? "block" : "none";
+            body.innerHTML = `
+                <div class="mb-3"><label class="text-muted small fw-bold">PRODUCTO</label><p class="fw-bold mb-0">${data.producto}</p></div>
+                <div class="row mb-3"><div class="col-6"><label class="text-muted small fw-bold">TIPO</label><br><span class="badge bg-light text-dark border">${data.tipo}</span></div><div class="col-6"><label class="text-muted small fw-bold">CANTIDAD</label><p class="fw-bold fs-4 mb-0">${data.cantidad}</p></div></div>
+                <div class="mb-3"><label class="text-muted small fw-bold text-uppercase">Responsable</label><p class="mb-0 text-dark">${data.usuario}</p></div>
+                <div class="mb-3"><label class="text-muted small fw-bold text-uppercase">Fecha Registro</label><p class="mb-0 text-muted">${data.fecha}</p></div>
+                <hr class="my-3 opacity-25">
+                <div class="mb-0"><label class="text-muted small fw-bold text-uppercase">Motivo</label><p class="text-secondary fst-italic mb-0">${data.motivo}</p></div>
+            `;
         });
-    });
+    }
 </script>
 {% endblock %}

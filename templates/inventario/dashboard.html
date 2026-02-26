@@ -7,74 +7,50 @@
         <p class="text-muted">Resumen general del estado del inventario y movimientos recientes.</p>
     </div>
     <div class="col-md-4 text-end">
-    <div class="dropdown">
-        <button class="btn btn-primary shadow-sm rounded-pill px-4 dropdown-toggle" type="button" id="dropdownReportes" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-printer me-2"></i>Generar Reportes
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="dropdownReportes">
-            <li><a class="dropdown-item py-2" href="{% url 'reporte_inventario_pdf' %}"><i class="bi bi-box-seam me-2 text-danger"></i>Stock e Inventario</a></li>
-            <li><a class="dropdown-item py-2" href="{% url 'reporte_ventas_pdf' %}"><i class="bi bi-currency-dollar me-2 text-success"></i>Ventas y Recaudación</a></li>
-        </ul>
+        <div class="dropdown">
+            <button class="btn btn-primary shadow-sm rounded-pill px-4 dropdown-toggle" type="button" id="dropdownReportes" data-bs-toggle="dropdown">
+                <i class="bi bi-printer me-2"></i>Generar Reportes
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
+                <li><a class="dropdown-item py-2" href="{% url 'reporte_inventario_pdf' %}"><i class="bi bi-box-seam me-2 text-danger"></i>Stock e Inventario</a></li>
+                <li><a class="dropdown-item py-2" href="{% url 'reporte_ventas_pdf' %}"><i class="bi bi-currency-dollar me-2 text-success"></i>Ventas y Recaudación</a></li>
+            </ul>
+        </div>
     </div>
-</div>
 </div>
 
 <div class="row g-4 mb-4">
-    
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-primary text-white rounded-4 h-100">
-            <div class="card-body d-flex align-items-center p-4">
-                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
-                    <i class="bi bi-box-seam fs-2"></i>
-                </div>
-                <div>
-                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Productos</h6>
-                    <h2 class="mb-0 fw-bold">{{ total_productos }}</h2>
-                </div>
+        <div class="card shadow-sm border-0 bg-primary text-white rounded-4">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3"><i class="bi bi-box-seam fs-2"></i></div>
+                <div><h6 class="text-uppercase small mb-1 opacity-75">Productos</h6><h2 class="mb-0 fw-bold">{{ total_productos }}</h2></div>
             </div>
         </div>
     </div>
-
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-info text-white rounded-4 h-100">
-            <div class="card-body d-flex align-items-center p-4">
-                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
-                    <i class="bi bi-people fs-2"></i>
-                </div>
-                <div>
-                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Clientes</h6>
-                    <h2 class="mb-0 fw-bold">{{ total_clientes }}</h2>
-                </div>
+        <div class="card shadow-sm border-0 bg-info text-white rounded-4">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3"><i class="bi bi-people fs-2"></i></div>
+                <div><h6 class="text-uppercase small mb-1 opacity-75">Clientes</h6><h2 class="mb-0 fw-bold">{{ total_clientes }}</h2></div>
                 <a href="{% url 'gestion_usuarios' %}" class="stretched-link"></a>
             </div>
         </div>
     </div>
-    
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-warning text-dark rounded-4 h-100">
-            <div class="card-body d-flex align-items-center p-4">
-                <div class="bg-dark bg-opacity-10 rounded-circle p-3 me-3 shadow-sm">
-                    <i class="bi bi-cart-dash fs-2"></i>
-                </div>
-                <div>
-                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Pendientes</h6>
-                    <h2 class="mb-0 fw-bold text-center">{{ pedidos_pendientes }}</h2>
-                </div>
+        <div class="card shadow-sm border-0 bg-warning text-dark rounded-4">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="bg-dark bg-opacity-10 rounded-circle p-3 me-3"><i class="bi bi-cart-dash fs-2"></i></div>
+                <div><h6 class="text-uppercase small mb-1 opacity-75">Pendientes</h6><h2 class="mb-0 fw-bold">{{ pedidos_pendientes }}</h2></div>
                 <a href="{% url 'gestion_pedidos' %}" class="stretched-link"></a>
             </div>
         </div>
     </div>
-    
     <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-danger text-white rounded-4 h-100">
-            <div class="card-body d-flex align-items-center p-4">
-                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3 shadow-sm">
-                    <i class="bi bi-exclamation-triangle fs-2"></i>
-                </div>
-                <div>
-                    <h6 class="text-uppercase fw-semibold mb-1 opacity-75 small">Críticos</h6>
-                    <h2 class="mb-0 fw-bold">{{ cantidad_criticos }}</h2>
-                </div>
+        <div class="card shadow-sm border-0 bg-danger text-white rounded-4">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3"><i class="bi bi-exclamation-triangle fs-2"></i></div>
+                <div><h6 class="text-uppercase small mb-1 opacity-75">Críticos</h6><h2 class="mb-0 fw-bold">{{ cantidad_criticos }}</h2></div>
             </div>
         </div>
     </div>
@@ -82,21 +58,12 @@
 
 <div class="row g-4">
     <div class="col-lg-8">
-        <div class="card shadow border-0 rounded-4 mb-4">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Distribución por Categoría</h5>
-            </div>
-            <div class="card-body px-4 pb-4">
-                <canvas id="graficoCategorias" height="100"></canvas>
-            </div>
-        </div>
-
-        <div class="card shadow border-0 rounded-4">
-            <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center pt-4 pb-2 px-4">
+        <div class="card shadow border-0 rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center pt-4 px-4">
                 <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-secondary me-2"></i>Últimos Movimientos</h5>
-                <a href="{% url 'lista_movimientos' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Ver todos</a>
+                <a href="{% url 'lista_movimientos' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Ver Kardex</a>
             </div>
-            <div class="card-body p-0 table-responsive">
+            <div class="card-body p-0 table-responsive mt-3">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
@@ -113,14 +80,12 @@
                             <td class="fw-bold text-dark">{{ mov.producto.nombre }}</td>
                             <td>
                                 {% if mov.tipo == 'ENTRADA' %}
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-arrow-down-left"></i> Entrada</span>
-                                {% elif mov.tipo == 'SALIDA' %}
-                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-arrow-up-right"></i> Salida</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Entrada</span>
                                 {% else %}
-                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1"><i class="bi bi-arrow-repeat"></i> Ajuste</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Salida</span>
                                 {% endif %}
                             </td>
-                            <td class="text-center fw-bold fs-6">{{ mov.cantidad }}</td>
+                            <td class="text-center fw-bold">{{ mov.cantidad }}</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="4" class="text-center py-5 text-muted">Sin movimientos recientes.</td></tr>
@@ -133,9 +98,8 @@
 
     <div class="col-lg-4">
         <div class="card shadow border-0 rounded-4 h-100 border-top border-danger border-4">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                <h5 class="fw-bold text-danger mb-0"><i class="bi bi-exclamation-octagon-fill me-2"></i>Atención Requerida</h5>
-                <p class="text-muted small mt-1">Reponer estos productos pronto.</p>
+            <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+                <h5 class="fw-bold text-danger mb-0"><i class="bi bi-exclamation-octagon-fill me-2"></i>Stock Crítico</h5>
             </div>
             <div class="card-body p-0 mt-2">
                 <ul class="list-group list-group-flush">
@@ -145,54 +109,20 @@
                             <div class="mb-0 fw-bold text-dark">{{ prod.nombre }}</div>
                             <small class="text-muted">SKU: {{ prod.sku }}</small>
                         </div>
-                        <div class="text-end">
-                            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm fs-6">{{ prod.stock_actual }}</span>
-                        </div>
+                        <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">{{ prod.stock_actual }}</span>
                     </li>
                     {% empty %}
                     <li class="list-group-item text-center py-5 border-0">
                         <i class="bi bi-check-circle text-success display-4 d-block mb-2"></i>
-                        <h6 class="fw-bold text-dark">Stock al día</h6>
+                        <h6 class="fw-bold text-dark">Todo en orden</h6>
                     </li>
                     {% endfor %}
                 </ul>
             </div>
             <div class="card-footer bg-white border-0 text-center pb-4">
-                <a href="{% url 'registrar_movimiento' %}" class="btn btn-outline-success btn-sm rounded-pill px-4 fw-bold">
-                    <i class="bi bi-plus-lg"></i> Registrar Entrada
-                </a>
+                <a href="{% url 'registrar_movimiento' %}" class="btn btn-outline-success btn-sm rounded-pill px-4 fw-bold">Reponer Stock</a>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const labels = [{% for item in datos_grafico %}"{{ item.categoria__nombre }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
-        const data = [{% for item in datos_grafico %}{{ item.total }}{% if not forloop.last %}, {% endif %}{% endfor %}];
-        const ctx = document.getElementById('graficoCategorias').getContext('2d');
-        
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Productos',
-                    data: data,
-                    backgroundColor: 'rgba(13, 110, 253, 0.85)',
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    y: { beginAtZero: true, ticks: { precision: 0 } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    });
-</script>
 {% endblock %}

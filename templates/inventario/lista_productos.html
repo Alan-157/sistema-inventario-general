@@ -87,18 +87,29 @@
                         {% endif %}
                     </td>
                     <td><code>{{ producto.sku }}</code></td>
-                    <td><a href="{% url 'detalle_producto' producto.pk %}" class="text-decoration-none fw-bold text-dark">{{ producto.nombre }}</a></td>
+                    <td>
+                        <a href="javascript:void(0)" onclick="abrirModalDetalle('{{ producto.pk }}')" class="text-decoration-none fw-bold text-dark">
+                            {{ producto.nombre }}
+                        </a>
+                    </td>
                     <td><span class="badge bg-light text-dark border">{{ producto.categoria.nombre }}</span></td>
                     <td class="{% if producto.stock_actual <= producto.stock_minimo %}text-danger fw-bold{% endif %}">
                         {{ producto.stock_actual }}
                     </td>
-                    <td>${{ producto.precio_venta }}</td>
+                    <td>${{ producto.precio_venta|floatformat:0 }}</td>
                     <td class="text-center">
+                        <button class="btn btn-sm btn-outline-info shadow-sm me-1" onclick="abrirModalDetalle('{{ producto.pk }}')" title="Ver Detalle">
+                            <i class="bi bi-eye"></i>
+                        </button>
                         {% if user.rol == 'ADMIN' or user.rol == 'SUPERUSUARIO' or user.is_superuser %}
-                            <a href="{% url 'editar_producto' producto.pk %}" class="btn btn-sm btn-outline-primary shadow-sm" title="Editar">
+                            <a href="{% url 'editar_producto' producto.pk %}" class="btn btn-sm btn-outline-primary shadow-sm me-1" title="Editar">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
-                            <button class="btn btn-sm btn-outline-danger shadow-sm btn-eliminar" data-url="{% url 'desactivar_producto' producto.pk %}" title="Desactivar">
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-danger shadow-sm btn-eliminar" 
+                                    data-url="{% url 'eliminar_producto_logico' producto.pk %}" 
+                                    data-nombre="{{ producto.nombre }}"
+                                    title="Desactivar">
                                 <i class="bi bi-trash"></i>
                             </button>
                         {% endif %}
@@ -133,120 +144,127 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalDetalleProducto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white border-0 py-3">
+                <h5 class="modal-title fw-bold">Detalle del Producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div id="modal-body-detalle" class="modal-body p-0">
+                </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// AJAX: Ver Detalle
+function abrirModalDetalle(id) {
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalleProducto'));
+    const body = document.getElementById('modal-body-detalle');
+    modal.show();
+
+    fetch(`/inventario/producto/${id}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const stockClase = data.stock_actual <= data.stock_minimo ? 'text-danger fw-bold' : 'text-success fw-bold';
+        body.innerHTML = `
+            <div class="row g-0">
+                <div class="col-md-5 text-center p-4 border-end bg-light">
+                    ${data.imagen_url ? `<img src="${data.imagen_url}" class="img-fluid rounded shadow-sm">` : `<i class="bi bi-image text-muted display-1"></i>`}
+                </div>
+                <div class="col-md-7 p-4">
+                    <span class="badge bg-primary mb-2">${data.categoria}</span>
+                    <h3 class="fw-bold text-dark">${data.nombre}</h3>
+                    <p class="text-muted small">SKU: ${data.sku}</p>
+                    <hr>
+                    <p class="mb-1"><strong>Stock Actual:</strong> <span class="${stockClase}">${data.stock_actual} unidades</span></p>
+                    <p class="mb-1"><strong>Precio Venta:</strong> $${data.precio_venta.toLocaleString()}</p>
+                    <p class="mb-1"><strong>Proveedor:</strong> ${data.proveedor}</p>
+                </div>
+            </div>`;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const inputBusqueda = document.getElementById('input-busqueda');
     const tabla = document.getElementById('tabla-productos');
     const containerPaginacion = document.getElementById('paginacion-container');
     const formFiltros = document.getElementById('form-filtros');
 
-    // Función para actualizar la tabla vía AJAX
+    // Función para recargar la tabla sin refrescar la página
     const actualizarTabla = () => {
         const formData = new FormData(formFiltros);
         const params = new URLSearchParams(formData).toString();
         const url = `{% url 'lista_productos' %}?${params}`;
 
-        fetch(url, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.json())
         .then(data => {
             tabla.innerHTML = "";
-            
-            // Ocultar paginación si hay una búsqueda activa para evitar confusiones
-            const isSearching = inputBusqueda.value.length > 0;
-            containerPaginacion.style.display = isSearching ? "none" : "block";
-
             if (data.productos.length === 0) {
-                tabla.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No se encontraron productos.</td></tr>';
+                tabla.innerHTML = '<tr><td colspan="7" class="text-center py-5">No hay resultados.</td></tr>';
                 return;
             }
-
             data.productos.forEach(p => {
-                const imgHtml = p.imagen_url 
-                    ? `<img src="${p.imagen_url}" class="rounded shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">`
-                    : `<i class="bi bi-image text-muted fs-4"></i>`;
-                
-                const stockClass = p.stock_critico ? "text-danger fw-bold" : "";
-                
-                // Generar HTML de acciones (solo si tiene permisos)
-                let accionesHtml = "";
-                {% if user.rol == 'ADMIN' or user.rol == 'SUPERUSUARIO' or user.is_superuser %}
-                accionesHtml = `
-                    <a href="${p.url_editar}" class="btn btn-sm btn-outline-primary shadow-sm" title="Editar">
-                        <i class="bi bi-pencil-square"></i>
-                    </a>
-                    <button class="btn btn-sm btn-outline-danger shadow-sm btn-eliminar" data-url="${p.url_desactivar}" title="Desactivar">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                `;
-                {% endif %}
-
                 tabla.innerHTML += `
                 <tr>
-                    <td class="ps-3">${imgHtml}</td>
+                    <td class="ps-3">${p.imagen_url ? `<img src="${p.imagen_url}" style="width:40px;height:40px;object-fit:cover" class="rounded">` : `<i class="bi bi-image text-muted"></i>`}</td>
                     <td><code>${p.sku}</code></td>
-                    <td><a href="${p.url_detalle}" class="text-decoration-none fw-bold text-dark">${p.nombre}</a></td>
+                    <td><a href="javascript:void(0)" onclick="abrirModalDetalle('${p.id}')" class="text-decoration-none fw-bold text-dark">${p.nombre}</a></td>
                     <td><span class="badge bg-light text-dark border">${p.categoria}</span></td>
-                    <td class="${stockClass}">${p.stock}</td>
+                    <td class="${p.stock <= p.stock_min ? 'text-danger fw-bold' : ''}">${p.stock}</td>
                     <td>$${p.precio}</td>
-                    <td class="text-center">${accionesHtml}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-info shadow-sm me-1" onclick="abrirModalDetalle('${p.id}')"><i class="bi bi-eye"></i></button>
+                        {% if user.rol == 'ADMIN' or user.rol == 'SUPERUSUARIO' or user.is_superuser %}
+                        <a href="${p.url_editar}" class="btn btn-sm btn-outline-primary shadow-sm me-1"><i class="bi bi-pencil-square"></i></a>
+                        <button class="btn btn-sm btn-outline-danger shadow-sm btn-eliminar" data-url="${p.url_desactivar}" data-nombre="${p.nombre}"><i class="bi bi-trash"></i></button>
+                        {% endif %}
+                    </td>
                 </tr>`;
             });
-            // Re-vincular eventos de eliminar para los nuevos elementos
             vincularEventosEliminar();
         });
     };
 
-    // Escuchar escritura en el buscador
     inputBusqueda.addEventListener('keyup', actualizarTabla);
+    document.querySelectorAll('.filtro-auto').forEach(el => el.addEventListener('change', actualizarTabla));
 
-    // Escuchar cambios en selects y rangos
-    document.querySelectorAll('.filtro-auto').forEach(el => {
-        el.addEventListener('change', actualizarTabla);
-    });
-
-    // Lógica de Soft Delete (Swal) encapsulada para re-uso
     function vincularEventosEliminar() {
-        const botonesEliminar = document.querySelectorAll('.btn-eliminar');
-        botonesEliminar.forEach(boton => {
-            // Eliminar listeners previos para evitar duplicados si se llama varias veces
-            boton.replaceWith(boton.cloneNode(true));
-        });
-
         document.querySelectorAll('.btn-eliminar').forEach(boton => {
-            boton.addEventListener('click', function(e) {
-                e.preventDefault(); 
+            boton.onclick = function() {
                 const url = this.getAttribute('data-url');
-                
+                const nombre = this.getAttribute('data-nombre');
+
                 Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: "El producto será desactivado del sistema (Soft Delete).",
+                    title: '¿Desactivar producto?',
+                    text: `El producto "${nombre}" no aparecerá más en el catálogo activo.`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="bi bi-trash"></i> Sí, desactivar',
+                    confirmButtonText: 'Sí, desactivar',
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         fetch(url, {
                             method: 'POST',
                             headers: {
-                                'X-Requested-With': 'XMLHttpRequest', 
-                                'X-CSRFToken': '{{ csrf_token }}'     
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': '{{ csrf_token }}'
                             }
                         })
                         .then(response => response.json())
                         .then(data => {
-                            if(data.ok) {
-                                Swal.fire('¡Desactivado!', data.message, 'success')
-                                .then(() => { location.reload(); });
+                            if (data.ok || data.message) {
+                                Swal.fire('¡Desactivado!', 'El producto ha sido movido a la papelera.', 'success').then(() => location.reload());
                             }
                         });
                     }
                 });
-            });
+            };
         });
     }
 

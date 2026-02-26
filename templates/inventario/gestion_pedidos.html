@@ -2,85 +2,94 @@
 
 {% block content %}
 <div class="row mb-4 align-items-center">
-    <div class="col-md-8">
-        <h2 class="fw-bold text-dark"><i class="bi bi-clipboard-check me-2 text-primary"></i>Gestión de Pedidos</h2>
-        <p class="text-muted">Aprobar solicitudes para descontar stock automáticamente o rechazar pedidos.</p>
+    <div class="col-md-6">
+        <h2 class="fw-bold text-dark"><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Gestión de Pedidos</h2>
+        <p class="text-muted small">Administra las solicitudes de tus clientes.</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-uppercase text-muted">Cliente</label>
+                <input type="text" name="cliente" class="form-control rounded-pill border-0 shadow-sm" placeholder="Buscar..." value="{{ cliente_query }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-uppercase text-muted">Estado</label>
+                <select name="estado" class="form-select rounded-pill border-0 shadow-sm">
+                    <option value="">Todos</option>
+                    <option value="PENDIENTE" {% if estado_actual == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                    <option value="APROBADO" {% if estado_actual == 'APROBADO' %}selected{% endif %}>Aprobado</option>
+                    <option value="RECHAZADO" {% if estado_actual == 'RECHAZADO' %}selected{% endif %}>Rechazado</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm">Filtrar</button>
+                <a href="{% url 'gestion_pedidos' %}" class="btn btn-white w-100 rounded-pill fw-bold shadow-sm border">Limpiar</a>
+            </div>
+        </form>
     </div>
 </div>
 
 <div class="row g-4">
     {% for pedido in pedidos %}
-    <div class="col-md-6 col-xl-4">
-        <div class="card shadow-sm border-0 rounded-4 h-100 transition-all hover-shadow">
-            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="fw-bold text-primary">Pedido #{{ pedido.id }}</span>
-                    <div class="text-muted small">{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</div>
-                </div>
-                <span class="badge {% if pedido.estado == 'PENDIENTE' %}bg-warning text-dark{% elif pedido.estado == 'APROBADO' %}bg-success{% else %}bg-danger{% endif %} rounded-pill px-3">
-                    {{ pedido.get_estado_display }}
-                </span>
-            </div>
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 h-100 {% if pedido.estado == 'PENDIENTE' %}bg-warning{% elif pedido.estado == 'APROBADO' %}bg-success{% else %}bg-danger{% endif %}" style="width: 6px;"></div>
             
-            <div class="card-body pt-0">
-                <div class="d-flex align-items-center mb-3 p-2 bg-light rounded-3">
-                    <i class="bi bi-person-circle fs-4 me-2 text-secondary"></i>
-                    <div class="lh-1">
-                        <small class="text-muted d-block">Solicitado por:</small>
-                        <strong>{{ pedido.cliente.username }}</strong>
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-0">Pedido #{{ pedido.id }}</h5>
+                        <small class="text-muted">{{ pedido.fecha_pedido|date:"d M, Y - H:i" }}</small>
+                    </div>
+                    {% if pedido.estado == 'PENDIENTE' %}
+                        <span class="badge bg-warning text-dark rounded-pill">Pendiente</span>
+                    {% elif pedido.estado == 'APROBADO' %}
+                        <span class="badge bg-success rounded-pill">Aprobado</span>
+                    {% else %}
+                        <span class="badge bg-danger rounded-pill">Rechazado</span>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-person-circle me-2 text-primary"></i>
+                        <span class="fw-semibold text-dark">{{ pedido.cliente.username }}</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-cash-stack me-2 text-success"></i>
+                        <span class="fs-4 fw-bold text-success">${{ pedido.total|floatformat:0 }}</span>
                     </div>
                 </div>
-                
-                <h6 class="fw-bold small text-uppercase text-muted mb-2">Detalle de Productos</h6>
-                <ul class="list-group list-group-flush mb-3 border rounded-3 overflow-hidden">
-                    {% for detalle in pedido.detalles.all %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center small py-2">
-                        <span>{{ detalle.producto.nombre }} <span class="badge bg-secondary ms-1">x{{ detalle.cantidad }}</span></span>
-                        <span class="fw-bold text-dark">${{ detalle.precio_unitario|floatformat:0 }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
 
-                <div class="d-flex justify-content-between align-items-center mb-4 px-1">
-                    <span class="text-muted fw-bold">TOTAL:</span>
-                    <h4 class="fw-bold mb-0 text-success">${{ pedido.total|floatformat:0 }}</h4>
-                </div>
-
-                {% if pedido.estado == 'PENDIENTE' %}
-                <div class="d-flex gap-2">
-                    <a href="{% url 'aprobar_pedido' pedido.id %}" class="btn btn-success rounded-pill w-100 fw-bold shadow-sm">
-                        <i class="bi bi-check-lg me-1"></i> Aprobar
+                <div class="d-flex gap-2 border-top pt-3">
+                    <a href="{% url 'detalle_pedido' pedido.id %}" class="btn btn-outline-primary btn-sm rounded-pill flex-grow-1">
+                        <i class="bi bi-eye me-1"></i> Ver Detalles
                     </a>
-                    <a href="{% url 'rechazar_pedido' pedido.id %}" class="btn btn-outline-danger rounded-pill w-100 fw-bold">
-                        <i class="bi bi-x-lg me-1"></i> Rechazar
+                    
+                    {% if pedido.estado == 'PENDIENTE' %}
+                    <a href="{% url 'aprobar_pedido' pedido.id %}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm" title="Aprobar">
+                        <i class="bi bi-check-lg"></i>
                     </a>
+                    <a href="{% url 'rechazar_pedido' pedido.id %}" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" title="Rechazar">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    {% endif %}
                 </div>
-                {% elif pedido.estado == 'APROBADO' %}
-                <div class="alert alert-success py-2 mb-0 rounded-pill text-center small">
-                    <i class="bi bi-check-circle-fill me-1"></i> Stock descontado del inventario
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
     {% empty %}
     <div class="col-12 text-center py-5">
-        <div class="bg-white rounded-circle d-inline-flex p-4 shadow-sm mb-3">
-            <i class="bi bi-inbox text-muted display-4"></i>
-        </div>
-        <h4 class="text-dark fw-bold">No hay pedidos registrados</h4>
-        <p class="text-muted">Las solicitudes de los clientes aparecerán aquí.</p>
+        <i class="bi bi-cart-x fs-1 text-muted"></i>
+        <p class="text-muted mt-2">No se encontraron pedidos con esos filtros.</p>
     </div>
     {% endfor %}
 </div>
 
-<style>
-    .hover-shadow:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.1)!important;
-    }
-    .transition-all {
-        transition: all .3s ease;
-    }
-</style>
+<div class="mt-4 d-flex justify-content-center">
+    {% include 'includes/paginacion.html' with page_obj=pedidos %}
+</div>
 {% endblock %}
