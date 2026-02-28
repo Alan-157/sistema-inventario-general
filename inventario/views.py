@@ -29,16 +29,12 @@ def es_admin_o_super(user):
         return True
     raise PermissionDenied
 
-# --- VISTAS DEL SISTEMA ---
-
-import json
-from django.db.models import Count, F
-# ... otros imports ...
-
 @login_required
 def dashboard(request):
-    """Dashboard Dinámico: Cliente vs Operativo"""
-    if request.user.rol == 'CLIENTE':
+    """Dashboard Dinámico: Cliente vs Trabajador vs Admin"""
+    rol = request.user.rol # Definimos la variable para que no dé NameError
+    
+    if rol == 'CLIENTE':
         context = {
             'ultimos_productos': Producto.objects.filter(is_active=True, stock_actual__gt=0).order_by('-created_at')[:4],
             'total_disponibles': Producto.objects.filter(is_active=True, stock_actual__gt=0).count(),
@@ -47,23 +43,20 @@ def dashboard(request):
         }
         return render(request, 'inventario/dashboard_cliente.html', context)
     
-    if request.user.rol == 'BODEGUERO':
+    if rol == 'TRABAJADOR':
         productos_criticos = Producto.objects.filter(is_active=True, stock_actual__lte=F('stock_minimo'))
         context = {
             'total_productos': Producto.objects.filter(is_active=True).count(),
             'cantidad_criticos': productos_criticos.count(),
-            'ultimos_movimientos': HistorialMovimiento.objects.all().order_by('-created_at')[:10],
             'productos_criticos': productos_criticos[:5],
+            'ultimos_movimientos': HistorialMovimiento.objects.filter(is_active=True).select_related('producto', 'usuario').order_by('-created_at')[:8],
         }
-        return render(request, 'inventario/dashboard_bodeguero.html', context)
+        return render(request, 'inventario/dashboard_trabajador.html', context)
 
     # DASHBOARD ADMIN / SUPERUSUARIO
     productos_criticos = Producto.objects.filter(is_active=True, stock_actual__lte=F('stock_minimo'))
-    
-    # Obtenemos los datos para el gráfico
     datos_grafico = Categoria.objects.annotate(total=Count('producto')).filter(total__gt=0).values('nombre', 'total')
     
-    # Preparamos los datos serializados para evitar errores en JS
     labels_js = [item['nombre'] for item in datos_grafico]
     valores_js = [item['total'] for item in datos_grafico]
 
@@ -74,11 +67,26 @@ def dashboard(request):
         'cantidad_criticos': productos_criticos.count(),
         'productos_criticos': productos_criticos[:5],
         'ultimos_movimientos': HistorialMovimiento.objects.select_related('producto', 'usuario').order_by('-created_at')[:5],
-        # Enviamos los datos como JSON
         'labels_js': json.dumps(labels_js),
         'valores_js': json.dumps(valores_js),
     }
     return render(request, 'inventario/dashboard.html', context)
+
+@login_required
+def detalle_producto_json(request, pk):
+    """Retorna los detalles de un producto para el modal AJAX"""
+    producto = get_object_or_404(Producto, pk=pk)
+    data = {
+        'nombre': producto.nombre,
+        'sku': producto.sku,
+        'categoria': producto.categoria.nombre,
+        'stock_actual': producto.stock_actual,
+        'stock_minimo': producto.stock_minimo,
+        'precio_venta': float(producto.precio_venta),
+        'descripcion': producto.descripcion or "Sin descripción.",
+        'imagen_url': producto.imagen.url if producto.imagen else None,
+    }
+    return JsonResponse(data)
 
 @login_required
 def lista_productos(request):
@@ -669,11 +677,11 @@ def crear_categoria(request):
 
 @login_required
 def detalle_categoria(request, pk):
-    # Buscamos la categoría o devolvemos 404 si no existe
+    # Buscamos la categoría
     categoria = get_object_or_404(Categoria, pk=pk)
     
     # Contamos cuántos productos activos tiene esta categoría
-    cantidad_productos = categoria.producto_set.filter(is_active=True).count()
+    cantidad_productos = Producto.objects.filter(categoria=categoria, is_active=True).count()
     
     # Devolvemos la información en formato JSON
     return JsonResponse({
@@ -846,20 +854,24 @@ def gestion_pedidos(request):
     if request.user.rol not in ['ADMIN', 'SUPERUSUARIO'] and not request.user.is_superuser:
         raise PermissionDenied
     
-    # Obtenemos los filtros
+    # Captura de filtros
     estado_filtro = request.GET.get('estado', '')
     cliente_filtro = request.GET.get('cliente', '')
+    fecha_desde = request.GET.get('desde', '')
+    fecha_hasta = request.GET.get('hasta', '')
 
-    # Consulta base con select_related para optimizar (evita muchas consultas a la BD)
+    # Consulta base optimizada con select_related
     pedidos = Pedido.objects.all().select_related('cliente').order_by('-fecha_pedido')
 
-    # Aplicamos filtros si existen
+    # --- Aplicación de Filtros ---
     if estado_filtro:
         pedidos = pedidos.filter(estado=estado_filtro)
     if cliente_filtro:
         pedidos = pedidos.filter(cliente__username__icontains=cliente_filtro)
+    if fecha_desde and fecha_hasta:
+        pedidos = pedidos.filter(fecha_pedido__date__range=[fecha_desde, fecha_hasta])
 
-    # Paginación (opcional pero recomendada)
+    # Paginación
     paginator = Paginator(pedidos, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -867,7 +879,9 @@ def gestion_pedidos(request):
     return render(request, 'inventario/gestion_pedidos.html', {
         'pedidos': page_obj,
         'estado_actual': estado_filtro,
-        'cliente_query': cliente_filtro
+        'cliente_query': cliente_filtro,
+        'desde': fecha_desde,
+        'hasta': fecha_hasta,
     })
     
 @login_required
@@ -1070,14 +1084,52 @@ def eliminar_producto_logico(request, pk):
 
 @login_required
 def gestion_inventario(request):
+    """Gestión de Inventario con Filtros y Paginación"""
     query = request.GET.get('q', '')
-    # Solo mostramos lo que NO está en la papelera
-    productos = Producto.objects.filter(is_active=True).select_related('categoria')
+    cat_id = request.GET.get('categoria', '')
     
+    # 1. Queryset base (Solo activos)
+    productos_list = Producto.objects.filter(is_active=True).select_related('categoria', 'proveedor').order_by('nombre')
+    
+    # 2. Aplicar filtros
     if query:
-        productos = productos.filter(nombre__icontains=query) | productos.filter(sku__icontains=query)
-    
+        productos_list = productos_list.filter(Q(nombre__icontains=query) | Q(sku__icontains=query))
+    if cat_id:
+        productos_list = productos_list.filter(categoria_id=cat_id)
+
+    # 3. Paginación (10 por página)
+    paginator = Paginator(productos_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Datos para select de filtros
+    categorias = Categoria.objects.filter(is_active=True)
+
     return render(request, 'inventario/gestion_inventario.html', {
-        'productos': productos.order_by('nombre'),
-        'query': query
+        'page_obj': page_obj, 
+        'query': query,
+        'categorias': categorias,
+        'cat_seleccionada': cat_id
+    })
+    
+@login_required
+def detalle_categoria_json(request, pk):
+    cat = get_object_or_404(Categoria, pk=pk)
+    # Contamos cuántos productos tiene esta categoría
+    prods_count = Producto.objects.filter(categoria=cat, is_active=True).count()
+    return JsonResponse({
+        'nombre': cat.nombre,
+        'descripcion': cat.descripcion or "Sin descripción.",
+        'total_productos': prods_count
+    })
+
+@login_required
+def detalle_proveedor_json(request, pk):
+    prov = get_object_or_404(Proveedor, pk=pk)
+    return JsonResponse({
+        'nombre': prov.nombre,
+        'contacto': prov.contacto or "No registrado",
+        'telefono': prov.telefono or "No registrado",
+        'email': prov.email or "No registrado",
+        'direccion': prov.direccion or "No registrada"
     })

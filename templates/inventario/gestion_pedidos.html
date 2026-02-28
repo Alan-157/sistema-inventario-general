@@ -1,95 +1,153 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col-md-6">
-        <h2 class="fw-bold text-dark"><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Gestión de Pedidos</h2>
-        <p class="text-muted small">Administra las solicitudes de tus clientes.</p>
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            <h2 class="fw-bold text-dark"><i class="bi bi-cart-check me-2 text-primary"></i>Gestión de Pedidos</h2>
+            <p class="text-muted">Administra las solicitudes de clientes en formato visual.</p>
+        </div>
     </div>
-</div>
 
-<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
-    <div class="card-body">
-        <form method="GET" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label small fw-bold text-uppercase text-muted">Cliente</label>
-                <input type="text" name="cliente" class="form-control rounded-pill border-0 shadow-sm" placeholder="Buscar..." value="{{ cliente_query }}">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label small fw-bold text-uppercase text-muted">Estado</label>
-                <select name="estado" class="form-select rounded-pill border-0 shadow-sm">
-                    <option value="">Todos</option>
-                    <option value="PENDIENTE" {% if estado_actual == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
-                    <option value="APROBADO" {% if estado_actual == 'APROBADO' %}selected{% endif %}>Aprobado</option>
-                    <option value="RECHAZADO" {% if estado_actual == 'RECHAZADO' %}selected{% endif %}>Rechazado</option>
-                </select>
-            </div>
-            <div class="col-md-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm">Filtrar</button>
-                <a href="{% url 'gestion_pedidos' %}" class="btn btn-white w-100 rounded-pill fw-bold shadow-sm border">Limpiar</a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="row g-4">
-    {% for pedido in pedidos %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card h-100 border-0 shadow-sm rounded-4 position-relative overflow-hidden">
-            <div class="position-absolute top-0 start-0 h-100 {% if pedido.estado == 'PENDIENTE' %}bg-warning{% elif pedido.estado == 'APROBADO' %}bg-success{% else %}bg-danger{% endif %}" style="width: 6px;"></div>
-            
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h5 class="fw-bold mb-0">Pedido #{{ pedido.id }}</h5>
-                        <small class="text-muted">{{ pedido.fecha_pedido|date:"d M, Y - H:i" }}</small>
-                    </div>
-                    {% if pedido.estado == 'PENDIENTE' %}
-                        <span class="badge bg-warning text-dark rounded-pill">Pendiente</span>
-                    {% elif pedido.estado == 'APROBADO' %}
-                        <span class="badge bg-success rounded-pill">Aprobado</span>
-                    {% else %}
-                        <span class="badge bg-danger rounded-pill">Rechazado</span>
-                    {% endif %}
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-body p-4">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Cliente</label>
+                    <input type="text" name="cliente" class="form-control rounded-pill border-light bg-light" placeholder="Nombre..." value="{{ cliente_query }}">
                 </div>
-
-                <div class="mb-4">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-person-circle me-2 text-primary"></i>
-                        <span class="fw-semibold text-dark">{{ pedido.cliente.username }}</span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-cash-stack me-2 text-success"></i>
-                        <span class="fs-4 fw-bold text-success">${{ pedido.total|floatformat:0 }}</span>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Estado</label>
+                    <select name="estado" class="form-select rounded-pill border-light bg-light">
+                        <option value="">Todos</option>
+                        <option value="PENDIENTE" {% if estado_actual == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                        <option value="APROBADO" {% if estado_actual == 'APROBADO' %}selected{% endif %}>Aprobado</option>
+                        <option value="RECHAZADO" {% if estado_actual == 'RECHAZADO' %}selected{% endif %}>Rechazado</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Rango de Fechas</label>
+                    <div class="input-group">
+                        <input type="date" name="desde" class="form-control rounded-start-pill border-light bg-light" value="{{ desde }}">
+                        <input type="date" name="hasta" class="form-control rounded-end-pill border-light bg-light" value="{{ hasta }}">
                     </div>
                 </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm">Filtrar</button>
+                    <a href="{% url 'gestion_pedidos' %}" class="btn btn-outline-secondary w-100 rounded-pill">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                <div class="d-flex gap-2 border-top pt-3">
-                    <a href="{% url 'detalle_pedido' pedido.id %}" class="btn btn-outline-primary btn-sm rounded-pill flex-grow-1">
-                        <i class="bi bi-eye me-1"></i> Ver Detalles
-                    </a>
-                    
-                    {% if pedido.estado == 'PENDIENTE' %}
-                    <a href="{% url 'aprobar_pedido' pedido.id %}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm" title="Aprobar">
-                        <i class="bi bi-check-lg"></i>
-                    </a>
-                    <a href="{% url 'rechazar_pedido' pedido.id %}" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" title="Rechazar">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
-                    {% endif %}
+    <div class="row g-4">
+        {% for pedido in pedidos %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden card-pedido">
+                <div class="p-3 d-flex justify-content-between align-items-center 
+                    {% if pedido.estado == 'PENDIENTE' %}bg-warning-subtle text-warning-emphasis
+                    {% elif pedido.estado == 'APROBADO' %}bg-success-subtle text-success-emphasis
+                    {% else %}bg-danger-subtle text-danger-emphasis{% endif %}">
+                    <span class="fw-bold">Pedido #{{ pedido.id }}</span>
+                    <span class="badge rounded-pill 
+                        {% if pedido.estado == 'PENDIENTE' %}bg-warning text-dark
+                        {% elif pedido.estado == 'APROBADO' %}bg-success
+                        {% else %}bg-danger{% endif %} px-3">
+                        {{ pedido.get_estado_display }}
+                    </span>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                <i class="bi bi-person fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 fw-bold">{{ pedido.cliente.username }}</h6>
+                            <small class="text-muted">{{ pedido.fecha_pedido|date:"d M, Y - H:i" }}</small>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Total del Pedido:</span>
+                            <span class="fs-5 fw-bold text-success">${{ pedido.total|floatformat:0 }}</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-auto">
+                        <a href="{% url 'detalle_pedido' pedido.pk %}" class="btn btn-light border w-100 rounded-pill fw-bold">
+                            <i class="bi bi-eye me-1"></i> Detalles
+                        </a>
+                        
+                        {% if pedido.estado == 'PENDIENTE' %}
+                        <button onclick="confirmarAccion('{% url 'aprobar_pedido' pedido.id %}', 'aprobar')" class="btn btn-success rounded-circle shadow-sm" title="Aprobar">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                        <button onclick="confirmarAccion('{% url 'rechazar_pedido' pedido.id %}', 'rechazar')" class="btn btn-danger rounded-circle shadow-sm" title="Rechazar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="text-muted">
+                <i class="bi bi-cart-x display-1 opacity-25"></i>
+                <p class="mt-3 fs-5">No se encontraron pedidos con estos filtros.</p>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="col-12 text-center py-5">
-        <i class="bi bi-cart-x fs-1 text-muted"></i>
-        <p class="text-muted mt-2">No se encontraron pedidos con esos filtros.</p>
+
+    {% if pedidos.has_other_pages %}
+    <div class="d-flex justify-content-center mt-5">
+        <nav>
+            <ul class="pagination shadow-sm rounded-pill overflow-hidden">
+                {% if pedidos.has_previous %}
+                <li class="page-item"><a class="page-link border-0 px-4" href="?page={{ pedidos.previous_page_number }}&estado={{ estado_actual }}&cliente={{ cliente_query }}&desde={{ desde }}&hasta={{ hasta }}"><i class="bi bi-chevron-left"></i></a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link border-0 px-4 bg-primary">Página {{ pedidos.number }}</span></li>
+
+                {% if pedidos.has_next %}
+                <li class="page-item"><a class="page-link border-0 px-4" href="?page={{ pedidos.next_page_number }}&estado={{ estado_actual }}&cliente={{ cliente_query }}&desde={{ desde }}&hasta={{ hasta }}"><i class="bi bi-chevron-right"></i></a></li>
+                {% endif %}
+            </ul>
+        </nav>
     </div>
-    {% endfor %}
+    {% endif %}
 </div>
 
-<div class="mt-4 d-flex justify-content-center">
-    {% include 'includes/paginacion.html' with page_obj=pedidos %}
-</div>
+<style>
+    .card-pedido { transition: transform 0.2s; }
+    .card-pedido:hover { transform: translateY(-5px); }
+</style>
+
+<script>
+function confirmarAccion(url, accion) {
+    const config = accion === 'aprobar' 
+        ? { title: '¿Aprobar pedido?', text: 'Se actualizará el stock automáticamente.', icon: 'success', color: '#198754' }
+        : { title: '¿Rechazar pedido?', text: 'El pedido será cancelado.', icon: 'warning', color: '#dc3545' };
+
+    Swal.fire({
+        title: config.title,
+        text: config.text,
+        icon: config.icon,
+        showCancelButton: true,
+        confirmButtonColor: config.color,
+        confirmButtonText: 'Sí, proceder',
+        cancelButtonText: 'Cancelar',
+        borderRadius: '1rem'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = url;
+        }
+    });
+}
+</script>
 {% endblock %}

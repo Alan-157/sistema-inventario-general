@@ -2,9 +2,12 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Dashboard e Inicio
+    # Ruta raíz de la app para evitar el 404
+    path('', views.dashboard, name='index'), 
+    
     path('dashboard/', views.dashboard, name='dashboard'),
     path('productos/', views.lista_productos, name='lista_productos'),
+    path('producto/detalle/json/<int:pk>/', views.detalle_producto_json, name='detalle_producto_json'),
     path('reporte/inventario-pdf/', views.reporte_inventario_pdf, name='reporte_inventario_pdf'),
     
     # CRUD de Productos (Unidad 1 y 2)
@@ -26,6 +29,8 @@ urlpatterns = [
     
     # CRUD categorias
     path('categorias/', views.lista_categorias, name='lista_categorias'),
+    path('categorias/detalle/<int:pk>/', views.detalle_categoria, name='detalle_categoria'),
+    path('categoria/json/<int:pk>/', views.detalle_categoria_json, name='detalle_categoria_json'),
     path('categorias/crear/', views.crear_categoria, name='crear_categoria'),
     path('categorias/editar/<int:pk>/', views.editar_categoria, name='editar_categoria'),
     path('categorias/eliminar/<int:pk>/', views.eliminar_categoria, name='eliminar_categoria'),
@@ -37,6 +42,7 @@ urlpatterns = [
     
     #CRUD Proveedores
     path('proveedores/', views.lista_proveedores, name='lista_proveedores'),
+    path('proveedor/json/<int:pk>/', views.detalle_proveedor_json, name='detalle_proveedor_json'),
     path('proveedor/detalle/<int:pk>/', views.detalle_proveedor, name='detalle_proveedor'),
     path('proveedores/crear/', views.crear_proveedor, name='crear_proveedor'),
     path('proveedores/editar/<int:pk>/', views.editar_proveedor, name='editar_proveedor'),

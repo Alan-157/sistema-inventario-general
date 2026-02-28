@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            <h2 class="fw-bold text-dark"><i class="bi bi-person-badge me-2 text-primary"></i>Panel de Trabajo</h2>
+            <p class="text-muted">Gestión operativa de stock y movimientos recientes.</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'registrar_movimiento' %}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                <i class="bi bi-plus-lg me-2"></i>Registrar Movimiento
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm bg-primary text-white p-4 rounded-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase small fw-bold opacity-75">Productos en Sistema</h6>
+                        <h2 class="mb-0 fw-bold">{{ total_productos }}</h2>
+                    </div>
+                    <i class="bi bi-box-seam fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm {% if cantidad_criticos > 0 %}bg-danger{% else %}bg-success{% endif %} text-white p-4 rounded-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase small fw-bold opacity-75">Alertas de Stock</h6>
+                        <h2 class="mb-0 fw-bold">{{ cantidad_criticos }}</h2>
+                    </div>
+                    <i class="bi bi-exclamation-triangle fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100 rounded-4">
+                <div class="card-header bg-white py-3 px-4">
+                    <h5 class="mb-0 fw-bold text-danger">Reponer Urgentemente</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Producto</th>
+                                    <th class="text-center">Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in productos_criticos %}
+                                <tr>
+                                    <td class="ps-4 fw-semibold">{{ p.nombre }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-3">{{ p.stock_actual }}</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center py-5 text-muted">Todo el stock está al día.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100 rounded-4">
+                <div class="card-header bg-white py-3 px-4 d-flex justify-content-between">
+                    <h5 class="mb-0 fw-bold">Últimos Movimientos de Bodega</h5>
+                    <a href="{% url 'lista_movimientos' %}" class="btn btn-sm btn-outline-secondary">Ver todo</a>
+                </div>
+                <div class="card-body p-4">
+                    <div class="list-group list-group-flush">
+                        {% for mov in ultimos_movimientos %}
+                        <div class="list-group-item px-0 border-0 mb-3 bg-light rounded-3 p-3">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <h6 class="mb-1 fw-bold text-dark">{{ mov.producto.nombre }}</h6>
+                                <span class="badge {% if mov.tipo == 'ENTRADA' %}bg-success{% else %}bg-danger{% endif %} rounded-pill px-3">
+                                    {{ mov.get_tipo_display }} ({{ mov.cantidad }})
+                                </span>
+                            </div>
+                            <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ mov.created_at|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        {% empty %}
+                        <p class="text-center text-muted py-4">No hay actividad registrada.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
